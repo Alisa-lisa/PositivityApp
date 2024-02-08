@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'dart:math';
+
+import 'package:positivityapp/widgets/config_dialog.dart';
+import 'package:positivityapp/widgets/info_dialog.dart';
+import 'package:positivityapp/widgets/generation_dialog.dart';
 
 void main() {
   runApp(const MyApp());
@@ -63,21 +66,39 @@ class _MyHomePageState extends State<MyHomePage> {
                   label: 'Info',
                   backgroundColor: Colors.lightBlue.shade300,
                   onTap: () {
-                    // setState(() { showCharts = !showCharts; });
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const InfoDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.build),
                   label: 'Config',
                   backgroundColor: Colors.lightBlue.shade200,
                   onTap: () {
-                    // setState(() { showCharts = !showCharts; });
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const ConfigDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.refresh),
                   label: 'New scenario',
                   backgroundColor: Colors.lightBlue.shade100,
                   onTap: () {
-                    // setState(() { areItemsSuggested = !areItemsSuggested; });
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const GenDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
                   }),
             ]));
   }
