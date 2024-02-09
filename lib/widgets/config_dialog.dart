@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:positivityapp/models/configuration.dart';
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
