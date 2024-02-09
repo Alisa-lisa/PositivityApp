@@ -1,11 +1,11 @@
-class UserPrefence {
-  List<String> areaBacklist;
-  List<String> difficultyBlacklist;
+class UserPreference {
+  List<String> areaBacklist = [];
+  List<String> difficultyBlacklist = [];
   int endpointToUse;
   int minimumPositive = 2;
   bool pause = false;
-  String timeFrame;
-  String numberReminders = 3;
+  String timeFrame = "None";
+  int numberReminders = 3;
 
   UserPreference(
       {this.difficultyBlacklist,
