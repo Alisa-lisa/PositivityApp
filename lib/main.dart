@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+
+import 'package:positivityapp/widgets/config_dialog.dart';
+import 'package:positivityapp/widgets/info_dialog.dart';
+import 'package:positivityapp/widgets/generation_dialog.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,12 +16,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'PotivityTraining',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'PositivityApp'),
     );
   }
 }
@@ -31,91 +35,71 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Color generateRandomColor() {
-    Random random = Random();
-    return Color.fromRGBO(
-      random.nextInt(256),
-      random.nextInt(256),
-      random.nextInt(256),
-      1.0,
-    );
-  }
-  String generateRandomText() {
-    List<String> texts = ['A', 'B', 'C', 'D', 'E'];
-    Random random = Random();
-    return texts[random.nextInt(texts.length)];
-  }
-
-	// const
+  // const
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Column(
-		  // mainAxisAlignment: MainAxisAlignment.center,
-		  children: [
-			// First child: Row with 5 clickable buttons
-			SizedBox(height: 10), // Spacer
-			Text("Area:"),
-				 Wrap(
-					spacing: 2.0,
-					runSpacing: 5.0,
-			  // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-			  children: List.generate(
-				5,
-				(index) => ElevatedButton(
-				  onPressed: () {
-					// Handle button click
-					print('Button $index Clicked');
-				  },
-				  style: ElevatedButton.styleFrom(
-					primary: Colors.grey,
-				  ),
-				  child: Text(tags[index]),
-				),
-			  ),
-			),
-			SizedBox(height: 10), // Spacer
-			// Second child: Row with 3 clickable buttons with icons
-			Text("Difficulty:"),
-			Row(
-			  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-			  children: List.generate(
-				3,
-				(index) => ElevatedButton(
-					onPressed: () {},
-					style: ElevatedButton.styleFrom(
-						primary: Colors.blue,	
-					),
-					child: Text(difficulty[index])
-					)
-				  )
-			),
-			SizedBox(height: 20), // Spacer
-			// Third child: Button in the center of the screen
-			ElevatedButton(
-			  onPressed: () {
-				// Handle button click
-				print('Generate Scenario Clicked');
-			  },
-			  style: ElevatedButton.styleFrom(
-				primary: Colors.blue, // You can set a specific color
-			  ),
-			  child: Text('Generate Scenario'),
-			),
-		  ],
-	),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text(widget.title),
+        ),
+        body: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Center(
+              child: Text("Here some text will appear!",
+                  style: TextStyle(fontSize: 24)),
+            ),
+          ],
+        ),
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.miniCenterFloat,
+        floatingActionButton: SpeedDial(
+            icon: Icons.account_circle,
+            backgroundColor: Colors.lightBlue.shade100,
+            children: [
+              SpeedDialChild(
+                  child: const Icon(Icons.help),
+                  label: 'Info',
+                  backgroundColor: Colors.lightBlue.shade300,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const InfoDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
+                  }),
+              SpeedDialChild(
+                  child: const Icon(Icons.build),
+                  label: 'Config',
+                  backgroundColor: Colors.lightBlue.shade200,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const ConfigDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
+                  }),
+              SpeedDialChild(
+                  child: const Icon(Icons.refresh),
+                  label: 'New scenario',
+                  backgroundColor: Colors.lightBlue.shade100,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const GenDialog();
+                        }).then((_) {
+                      setState(() {});
+                    });
+                  }),
+            ]));
   }
 }
