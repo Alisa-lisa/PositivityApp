@@ -10,6 +10,8 @@ class ConfigDialog extends StatefulWidget {
 }
 
 class ConfigDialogState extends State<ConfigDialog> {
+  UserPreference userConf = UserPreference();
+
   @override
   void initState() {
     super.initState();
@@ -17,8 +19,9 @@ class ConfigDialogState extends State<ConfigDialog> {
 
   @override
   Widget build(BuildContext context) {
-    var conf = UserPreference(endpointToUse: 2);
-    print("${conf.areaBacklist}");
+    var conf = UserPreference();
+    conf.endpointToUse = 2;
+    print("${conf.areaBlacklist}");
     return const Dialog(
         child: Column(children: [Text("Here comes configuration")]));
   }
