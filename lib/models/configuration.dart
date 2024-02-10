@@ -1,37 +1,51 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Class properties and respective keys in SharedPreference
+const String AREA_BLIST = "areas";
+const String DIFF_BLIST = "difficulties";
+const String ENDPOINTS = "endpoints";
+const String MIN_ANSWERS = "answers";
+const String PAUSE = "paused";
+const String TIME_FRAME = "twindow";
+const String REMINDERS = "reminders";
+
 class UserPreference {
-  List<String> areaBlacklist = [];
-  List<String> difficultyBlacklist = [];
+  List<String> areaBlacklist = []; // TBD
+  List<String> difficultyBlacklist = []; //TBD
   int endpointToUse = 0;
   int minimumPositive = 2;
   bool pause = false;
-  String timeFrame = "None";
+  String timeFrame = "None"; // TBD
   int numberReminders = 3;
 
-  late SharedPreferences _prefs;
-
-  UserPreference() {
-    _initPreference();
-  }
-
-  Future<void> _initPreference() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
-
-  UserPreference getPreference() {
+  UserPreference getPreference(SharedPreferences prefs) {
     UserPreference res = UserPreference();
-    res.areaBlacklist = _prefs.getStringList("areas") ?? res.areaBlacklist;
+    res.areaBlacklist = prefs.getStringList(AREA_BLIST) ?? res.areaBlacklist;
     res.difficultyBlacklist =
-        _prefs.getStringList("difficulties") ?? res.difficultyBlacklist;
-    res.endpointToUse = _prefs.getInt("endpoints") ?? res.endpointToUse;
-    res.minimumPositive =
-        _prefs.getInt("minimum_answers") ?? res.minimumPositive;
-    res.pause = _prefs.getBool("paused") ?? res.pause;
-    res.numberReminders = _prefs.getInt("reminders") ?? res.numberReminders;
+        prefs.getStringList(DIFF_BLIST) ?? res.difficultyBlacklist;
+    res.endpointToUse = prefs.getInt(ENDPOINTS) ?? res.endpointToUse;
+    res.minimumPositive = prefs.getInt(MIN_ANSWERS) ?? res.minimumPositive;
+    res.pause = prefs.getBool(PAUSE) ?? res.pause;
+    res.numberReminders = prefs.getInt(REMINDERS) ?? res.numberReminders;
 
     return res;
   }
 
-  void setPrefernce() {}
+  Future<UserPreference> setPreference(SharedPreferences prefs, int? endpoints,
+      int? minimunAnswers, bool? pause, int? reminders) async {
+    if (endpoints != null) {
+      await prefs.setInt(ENDPOINTS, endpoints);
+    }
+    if (minimunAnswers != null) {
+      await prefs.setInt(MIN_ANSWERS, minimunAnswers);
+    }
+    if (pause != null) {
+      await prefs.setBool(PAUSE, pause);
+    }
+    if (reminders != null) {
+      await prefs.setInt(REMINDERS, reminders);
+    }
+
+    return getPreference(prefs);
+  }
 }
