@@ -7,6 +7,7 @@ import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:positivityapp/env/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
+    print("Env variable is ${Env.key}");
     Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer pos1t1v1tY',
