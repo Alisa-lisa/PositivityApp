@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
@@ -7,18 +6,28 @@ import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
+  AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+  String deviceId = androidInfo.id;
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(prefs: prefs, client: client));
+  runApp(MyApp(prefs: prefs, client: client, deviceId: deviceId));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
   final http.Client client;
-  const MyApp({required this.prefs, required this.client, super.key});
+  final String deviceId;
+  const MyApp(
+      {required this.prefs,
+      required this.client,
+      required this.deviceId,
+      super.key});
 
   // This widget is the root of your application.
   @override
@@ -29,7 +38,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: MyHomePage(title: 'PositivityApp', prefs: prefs, client: client),
+      home: MyHomePage(
+          title: 'PositivityApp',
+          prefs: prefs,
+          client: client,
+          deviceId: deviceId),
     );
   }
 }
@@ -38,11 +51,13 @@ class MyHomePage extends StatefulWidget {
   final String title;
   final SharedPreferences prefs;
   final http.Client client;
+  final String deviceId;
   const MyHomePage(
       {super.key,
       required this.title,
       required this.prefs,
-      required this.client});
+      required this.client,
+      required this.deviceId});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -52,9 +67,9 @@ class _MyHomePageState extends State<MyHomePage> {
   // const
   SharedPreferences get prefs => widget.prefs;
   http.Client get client => widget.client;
+  String get deviceId => widget.deviceId;
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
-  String? deviceId;
 
   @override
   void initState() {
@@ -67,9 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {
       'Authorization': 'Bearer pos1t1v1tY',
     };
     var url = Uri.parse(
-        "https://positivity.analyticorn.com/api/v2/negative_scenario/test?difficulty=Difficult&area=Health");
+        "https://positivity.analyticorn.com/api/v2/negative_scenario/${deviceId}?difficulty=Difficult&area=Health");
     var res = await client.get(url, headers: headers);
     return res.body;
+    // return "LOL!";
   }
 
   @override
