@@ -3,8 +3,10 @@ import 'package:envied/envied.dart';
 
 part 'env.g.dart';
 
-@Envied()
+@Envied(path: '.env')
 abstract class Env {
-  @EnviedField(varName: 'KEY')
-  static const String key = _Env.key;
+  @EnviedField(varName: 'AUTH')
+  static const String auth = _Env.auth;
+  @EnviedField(varName: 'BASE_URL')
+  static const String base_url = _Env.base_url;
 }

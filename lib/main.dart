@@ -78,13 +78,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
-    print("Env variable is ${Env.key}");
     Map<String, String> headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer pos1t1v1tY',
+      'Authorization': 'Bearer ${Env.auth}',
     };
     var url = Uri.parse(
-        "https://positivity.analyticorn.com/api/v2/negative_scenario/${deviceId}?difficulty=Difficult&area=Health");
+        "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
     var res = await client.get(url, headers: headers);
     return res.body;
     // return "LOL!";
