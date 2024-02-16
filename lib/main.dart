@@ -7,6 +7,7 @@ import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:positivityapp/env/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,10 +80,10 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<String> _getText() async {
     Map<String, String> headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer pos1t1v1tY',
+      'Authorization': 'Bearer ${Env.auth}',
     };
     var url = Uri.parse(
-        "https://positivity.analyticorn.com/api/v2/negative_scenario/${deviceId}?difficulty=Difficult&area=Health");
+        "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
     var res = await client.get(url, headers: headers);
     return res.body;
     // return "LOL!";

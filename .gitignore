@@ -140,3 +140,4 @@ app.*.symbols
 
 # custom
 .env
+env.g.dart
