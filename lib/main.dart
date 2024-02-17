@@ -73,6 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -119,11 +120,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         Center(
                             child: Container(
                           height: height * 0.3,
-                          width: width * 0.9,
+                          width: width * 0.96,
                           color: Colors.blue[50],
-                          child: Text(snapshot.data.toString(),
-                              style: const TextStyle(fontSize: 18)),
+                          child: Padding(
+                              padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
+                              child: Text(snapshot.data.toString(),
+                                  style: const TextStyle(fontSize: 18))),
                         )),
+                        const SizedBox(height: 16.0),
                       ]);
                 }, childCount: 1)),
                 SliverList(
@@ -134,18 +138,46 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold)));
                 }, childCount: 1)),
+                SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+                    sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int index) {
+                      return Form(
+                          key: _formKey,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+                            child: TextFormField(
+                              obscureText: false,
+                              decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: 'Optimistic/Positive outlook'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter some text';
+                                }
+                                return null; // Return null if the input is valid
+                              },
+                            ),
+                          ));
+                    }, childCount: userConf.minimumPositive))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
-                  return const Padding(
-                      padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-                      child: TextField(
-                          obscureText: false,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Optimistic/Positive outlook',
-                          )));
-                }, childCount: userConf.minimumPositive))
+                  return Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          // TODO: save stats, clean screen and update text field, disable go button
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Form is valid!')),
+                          );
+                        }
+                      },
+                      child: const Text('Go'),
+                    ),
+                  );
+                }, childCount: 1)),
               ]);
             }),
         floatingActionButtonLocation:
