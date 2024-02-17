@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class InfoDialog extends StatefulWidget {
   const InfoDialog({super.key});
@@ -11,6 +12,10 @@ class InfoDialogState extends State<InfoDialog> {
   @override
   void initState() {
     super.initState();
+  }
+
+  Future<void> _launchUrl(String input) async {
+    await launchUrl(Uri.parse(input));
   }
 
   @override
@@ -229,13 +234,37 @@ class InfoDialogState extends State<InfoDialog> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                   ))),
-                          //   Padding(
-                          //       padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
-                          //       child: Text(
-                          //           "If Posicorn utilizes third-party data providers (data generators), these entities only receive non-user-specific requests. Individual user data remains confidential and is not shared with external parties.",
-                          //           style: TextStyle(
-                          //             fontSize: 10,
-                          //           ))),
+                        ]);
+                  },
+                  childCount: 1,
+                ),
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                              padding: EdgeInsets.fromLTRB(10, 5, 5, 0),
+                              child: Text("Useful links.",
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold))),
+                          Column(children: [
+                            InkWell(
+                                child: const Padding(
+                                    padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
+                                    child: Text(
+                                        "Posirtive Cognitive Behavioural Therapy (pCBT)",
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                        ))),
+                                onTap: () {
+                                  _launchUrl(
+                                      "https://positivepsychology.com/positive-cbt/");
+                                })
+                          ])
                         ]);
                   },
                   childCount: 1,
