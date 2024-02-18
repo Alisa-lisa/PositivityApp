@@ -74,6 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
   final _formKey = GlobalKey<FormState>();
+  int refreshCount = 2;
 
   @override
   void initState() {
@@ -89,6 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var url = Uri.parse(
         "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
     var res = await client.get(url, headers: headers);
+    print("Got new text!");
     return res.body;
     // return "LOL!";
   }
@@ -220,9 +222,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return const GenDialog();
+                          return GenDialog(count: refreshCount);
                         }).then((_) {
-                      setState(() {});
+                      if (refreshCount > 0) {
+                        refreshCount -= 1;
+                        setState(() {});
+                      }
                     });
                   }),
             ]));
