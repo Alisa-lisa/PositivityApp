@@ -90,9 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var url = Uri.parse(
         "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
     var res = await client.get(url, headers: headers);
-    print("Got new text!");
     return res.body;
-    // return "LOL!";
   }
 
   @override
@@ -198,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         builder: (context) {
                           return const InfoDialog();
                         }).then((_) {
-                      setState(() {});
+                      // setState(() {});
                     });
                   }),
               SpeedDialChild(
@@ -210,9 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return ConfigDialog(prefs: prefs);
-                        }).then((_) {
-                      setState(() {});
-                    });
+                        });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.refresh),

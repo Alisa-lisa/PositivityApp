@@ -15,6 +15,28 @@ class GenDialogState extends State<GenDialog> {
     super.initState();
   }
 
+  Widget getAlertText() {
+    if (count == 0) {
+      return const Text("You have used up all resources for today.");
+    } else {
+      return RichText(
+          text: TextSpan(
+              text: 'You have ',
+              style: const TextStyle(fontSize: 12, color: Colors.black),
+              children: <TextSpan>[
+            TextSpan(
+              text: '$count',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+                fontSize: 20,
+              ),
+            ),
+            const TextSpan(text: ' refresh attempts left.'),
+          ]));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -24,7 +46,7 @@ class GenDialogState extends State<GenDialog> {
           children: <Widget>[
             const Text(
                 'Due to high cost of LLMs, number refreshes per day is limited'),
-            Text('You have $count refresh attempts left.'),
+            getAlertText(),
           ],
         ),
       ),
