@@ -82,26 +82,46 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
-  final _formKey = GlobalKey<FormState>();
+  late List<GlobalKey> _keys;
   int refreshCount = 2;
+  bool noRefresh = false;
+  late String cached;
 
   @override
   void initState() {
     super.initState();
     userConf = UserPreference().getPreference(prefs);
     state.setState(userConf.minimumPositive);
+    _keys = [];
+    for (var i = 0; i < userConf.minimumPositive; i++) {
+      _keys.add(GlobalKey<FormState>());
+    }
   }
 
   Future<String> _getText() async {
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${Env.auth}',
-    };
-    var url = Uri.parse(
-        "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
-    var res = await client.get(url, headers: headers);
-    return res.body;
+    if (noRefresh == false) {
+      Map<String, String> headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${Env.auth}',
+      };
+      var url = Uri.parse(
+          "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
+      var res = await client.get(url, headers: headers);
+      cached = res.body;
+      noRefresh = true;
+      return res.body;
+    }
+    return cached;
   }
+
+  // bool _validateInputFields() {
+  //   for (final k in _keys) {
+  //     if (!k.currentState!.validate()) {
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       print(
                           "Number answers is ${state.state} vs ${userConf.minimumPositive}");
                       return Form(
-                          key: _formKey,
+                          key: _keys[index],
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
                             child: TextFormField(
@@ -164,27 +184,22 @@ class _MyHomePageState extends State<MyHomePage> {
                               decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
                                   labelText: 'Optimistic/Positive outlook'),
-                              // validator: (value) {
-                              //   if (value == null || value.isEmpty) {
-                              //     return 'Please enter some text';
-                              //   }
-                              //   return null; // Return null if the input is valid
-                              // },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter some text';
+                                }
+                                return null; // Return null if the input is valid
+                              },
                             ),
                           ));
-                    }, childCount: 3))),
+                    }, childCount: userConf.minimumPositive))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
                   return Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          // TODO: save stats, clean screen and update text field, disable go button
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Form is valid!')),
-                          );
-                        }
+                        // TODO: save stats, clean screen and update text field, disable go button validate all fields properly
                       },
                       child: const Text('Go'),
                     ),
