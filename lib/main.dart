@@ -6,6 +6,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
+import 'package:positivityapp/controllers/config_state.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:positivityapp/env/env.dart';
@@ -13,22 +14,26 @@ import 'package:positivityapp/env/env.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  UserConfigCache confCache = UserConfigCache();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(prefs: prefs, client: client, deviceId: deviceId));
+  runApp(MyApp(
+      prefs: prefs, client: client, deviceId: deviceId, state: confCache));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
   final http.Client client;
   final String deviceId;
+  final UserConfigCache state;
   const MyApp(
       {required this.prefs,
       required this.client,
       required this.deviceId,
+      required this.state,
       super.key});
 
   // This widget is the root of your application.
@@ -44,7 +49,8 @@ class MyApp extends StatelessWidget {
           title: 'PositivityApp',
           prefs: prefs,
           client: client,
-          deviceId: deviceId),
+          deviceId: deviceId,
+          state: state),
     );
   }
 }
@@ -54,11 +60,13 @@ class MyHomePage extends StatefulWidget {
   final SharedPreferences prefs;
   final http.Client client;
   final String deviceId;
+  final UserConfigCache state;
   const MyHomePage(
       {super.key,
       required this.title,
       required this.prefs,
       required this.client,
+      required this.state,
       required this.deviceId});
 
   @override
@@ -70,6 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
   SharedPreferences get prefs => widget.prefs;
   http.Client get client => widget.client;
   String get deviceId => widget.deviceId;
+  UserConfigCache get state => widget.state;
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
@@ -80,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     userConf = UserPreference().getPreference(prefs);
+    state.setState(userConf.minimumPositive);
   }
 
   Future<String> _getText() async {
@@ -143,6 +153,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                             (BuildContext context, int index) {
+                      print(
+                          "Number answers is ${state.state} vs ${userConf.minimumPositive}");
                       return Form(
                           key: _formKey,
                           child: Padding(
@@ -152,15 +164,15 @@ class _MyHomePageState extends State<MyHomePage> {
                               decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
                                   labelText: 'Optimistic/Positive outlook'),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter some text';
-                                }
-                                return null; // Return null if the input is valid
-                              },
+                              // validator: (value) {
+                              //   if (value == null || value.isEmpty) {
+                              //     return 'Please enter some text';
+                              //   }
+                              //   return null; // Return null if the input is valid
+                              // },
                             ),
                           ));
-                    }, childCount: userConf.minimumPositive))),
+                    }, childCount: 3))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
@@ -207,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return ConfigDialog(prefs: prefs);
+                          return ConfigDialog(prefs: prefs, state: state);
                         });
                   }),
               SpeedDialChild(
