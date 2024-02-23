@@ -4,14 +4,13 @@ const String DATE_KEY = "timestamp";
 const String COUNTER_KEY = "daily_refresh";
 
 class UsageStats {
-  String date = DateTime.now().toString();
-  int refreshCount = 2;
+  String? date;
+  int? refreshCount;
 
   UsageStats getUsage(SharedPreferences prefs) {
     UsageStats dailyUsage = UsageStats();
-    dailyUsage.date = prefs.getString(DATE_KEY) ?? dailyUsage.date;
-    dailyUsage.refreshCount =
-        prefs.getInt(COUNTER_KEY) ?? dailyUsage.refreshCount;
+    dailyUsage.date = prefs.getString(DATE_KEY) ?? DateTime.now().toString();
+    dailyUsage.refreshCount = prefs.getInt(COUNTER_KEY) ?? 2;
     return dailyUsage;
   }
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:positivityapp/models/usage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GenDialog extends StatefulWidget {
   final int count;
-  const GenDialog({required this.count, super.key});
+  final SharedPreferences prefs;
+  const GenDialog({required this.count, required this.prefs, super.key});
 
   @override
   GenDialogState createState() => GenDialogState();
@@ -10,9 +13,13 @@ class GenDialog extends StatefulWidget {
 
 class GenDialogState extends State<GenDialog> {
   int get count => widget.count;
+  SharedPreferences get prefs => widget.prefs;
+  late UsageStats usage;
+
   @override
   void initState() {
     super.initState();
+    usage = UsageStats().getUsage(prefs);
   }
 
   Widget getAlertText() {
@@ -54,6 +61,9 @@ class GenDialogState extends State<GenDialog> {
         TextButton(
           child: const Text('Ok'),
           onPressed: () {
+            setState(() {
+              usage.setUsage(prefs, null, count - 1);
+            });
             Navigator.of(context).pop();
           },
         ),

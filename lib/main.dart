@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
-import 'dart:io';
 
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
@@ -87,16 +86,19 @@ class _MyHomePageState extends State<MyHomePage> {
   late UsageStats usage;
   late List<GlobalKey> _keys;
   bool noRefresh = false;
-  int refreshCounter = 2;
+  int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
 
   @override
   void initState() {
     super.initState();
     usage = UsageStats().getUsage(prefs);
-    refreshCounter = usage.refreshCount;
     // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
+    String today = DateTime.now().toString();
+    if (today != usage.date) {
+      usage.setUsage(prefs, today, 2);
+    }
     state.setState(userConf.minimumPositive);
     _keys = [];
     for (var i = 0; i < userConf.minimumPositive; i++) {
@@ -105,11 +107,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
-    await usage.setUsage(prefs, null, refreshCounter);
-    print("current count is ${refreshCounter}");
-    if (refreshCounter > 0) {
+    if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
       // API is taking some time to generate the new text, so it's a safeguard
-      sleep(const Duration(seconds: 3));
+      // sleep(const Duration(seconds: 3));
       Map<String, String> headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${Env.auth}',
@@ -117,7 +117,6 @@ class _MyHomePageState extends State<MyHomePage> {
       var url = Uri.parse(
           "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
       var res = await client.get(url, headers: headers);
-      print("Got new text");
       return res.body;
     }
     return noTextAvailable;
@@ -136,6 +135,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
+    int leftRefresh = usage.refreshCount! - refreshCounter >= 0
+        ? usage.refreshCount! - refreshCounter
+        : 0;
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -229,9 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return const InfoDialog();
-                        }).then((_) {
-                      // setState(() {});
-                    });
+                        }).then((_) {});
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.build),
@@ -252,12 +252,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return GenDialog(count: refreshCounter);
+                          return GenDialog(count: leftRefresh, prefs: prefs);
                         }).then((_) {
-                      if (refreshCounter > 0) {
-                        refreshCounter -= 1;
-                        setState(() {});
-                      }
+                      refreshCounter += 1;
+                      setState(() {});
                     });
                   }),
             ]));
