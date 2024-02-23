@@ -2,33 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
 
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
-import 'package:http/http.dart' as http;
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/env/env.dart';
+import 'package:positivityapp/models/usage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  UserConfigCache confCache = UserConfigCache();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(prefs: prefs, client: client, deviceId: deviceId));
+  runApp(MyApp(
+      prefs: prefs, client: client, deviceId: deviceId, state: confCache));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
   final http.Client client;
   final String deviceId;
+  final UserConfigCache state;
   const MyApp(
       {required this.prefs,
       required this.client,
       required this.deviceId,
+      required this.state,
       super.key});
 
   // This widget is the root of your application.
@@ -44,7 +50,8 @@ class MyApp extends StatelessWidget {
           title: 'PositivityApp',
           prefs: prefs,
           client: client,
-          deviceId: deviceId),
+          deviceId: deviceId,
+          state: state),
     );
   }
 }
@@ -54,11 +61,13 @@ class MyHomePage extends StatefulWidget {
   final SharedPreferences prefs;
   final http.Client client;
   final String deviceId;
+  final UserConfigCache state;
   const MyHomePage(
       {super.key,
       required this.title,
       required this.prefs,
       required this.client,
+      required this.state,
       required this.deviceId});
 
   @override
@@ -70,33 +79,65 @@ class _MyHomePageState extends State<MyHomePage> {
   SharedPreferences get prefs => widget.prefs;
   http.Client get client => widget.client;
   String get deviceId => widget.deviceId;
+  UserConfigCache get state => widget.state;
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
-  final _formKey = GlobalKey<FormState>();
+  late UsageStats usage;
+  late List<GlobalKey> _keys;
+  bool noRefresh = false;
+  int refreshCounter = 0;
+  String noTextAvailable = "No new scenario for now!";
 
   @override
   void initState() {
     super.initState();
+    usage = UsageStats().getUsage(prefs);
+    // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
+    String today = DateTime.now().toString();
+    if (today != usage.date) {
+      usage.setUsage(prefs, today, 2);
+    }
+    state.setState(userConf.minimumPositive);
+    _keys = [];
+    for (var i = 0; i < userConf.minimumPositive; i++) {
+      _keys.add(GlobalKey<FormState>());
+    }
   }
 
   Future<String> _getText() async {
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${Env.auth}',
-    };
-    var url = Uri.parse(
-        "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
-    var res = await client.get(url, headers: headers);
-    return res.body;
-    // return "LOL!";
+    if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
+      // API is taking some time to generate the new text, so it's a safeguard
+      // sleep(const Duration(seconds: 3));
+      Map<String, String> headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${Env.auth}',
+      };
+      var url = Uri.parse(
+          "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
+      var res = await client.get(url, headers: headers);
+      return res.body;
+    }
+    return noTextAvailable;
   }
+
+  // bool _validateInputFields() {
+  //   for (final k in _keys) {
+  //     if (!k.currentState!.validate()) {
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // }
 
   @override
   Widget build(BuildContext context) {
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
+    int leftRefresh = usage.refreshCount! - refreshCounter >= 0
+        ? usage.refreshCount! - refreshCounter
+        : 0;
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -144,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         delegate: SliverChildBuilderDelegate(
                             (BuildContext context, int index) {
                       return Form(
-                          key: _formKey,
+                          key: _keys[index],
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
                             child: TextFormField(
@@ -167,12 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          // TODO: save stats, clean screen and update text field, disable go button
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Form is valid!')),
-                          );
-                        }
+                        // TODO: save stats, clean screen and update text field, disable go button validate all fields properly
                       },
                       child: const Text('Go'),
                     ),
@@ -195,9 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return const InfoDialog();
-                        }).then((_) {
-                      setState(() {});
-                    });
+                        }).then((_) {});
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.build),
@@ -207,10 +241,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return ConfigDialog(prefs: prefs);
-                        }).then((_) {
-                      setState(() {});
-                    });
+                          return ConfigDialog(prefs: prefs, state: state);
+                        });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.refresh),
@@ -220,8 +252,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return const GenDialog();
+                          return GenDialog(count: leftRefresh, prefs: prefs);
                         }).then((_) {
+                      refreshCounter += 1;
                       setState(() {});
                     });
                   }),

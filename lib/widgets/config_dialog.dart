@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:positivityapp/controllers/config_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:positivityapp/models/configuration.dart';
 
 class ConfigDialog extends StatefulWidget {
   final SharedPreferences prefs;
-  const ConfigDialog({super.key, required this.prefs});
+  final UserConfigCache state;
+  const ConfigDialog({super.key, required this.prefs, required this.state});
 
   @override
   ConfigDialogState createState() => ConfigDialogState();
 }
 
 class ConfigDialogState extends State<ConfigDialog> {
+  UserConfigCache get state => widget.state;
   SharedPreferences get prefs => widget.prefs;
   late UserPreference userConf;
 
@@ -91,6 +94,7 @@ class ConfigDialogState extends State<ConfigDialog> {
                                 onChanged: (int? value) {
                                   setState(() {
                                     _answers = value!;
+                                    state.setState(_answers!);
                                   });
                                 },
                                 hint: const Text('Num solutions')))
