@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
-import 'package:http/http.dart' as http;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:positivityapp/env/env.dart';
+import 'package:positivityapp/models/usage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,14 +84,18 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
+  late UsageStats usage;
   late List<GlobalKey> _keys;
-  int refreshCount = 2;
   bool noRefresh = false;
-  late String cached;
+  int refreshCounter = 2;
+  String noTextAvailable = "No new scenario for now!";
 
   @override
   void initState() {
     super.initState();
+    usage = UsageStats().getUsage(prefs);
+    refreshCounter = usage.refreshCount;
+    // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
     state.setState(userConf.minimumPositive);
     _keys = [];
@@ -99,7 +105,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
-    if (noRefresh == false) {
+    await usage.setUsage(prefs, null, refreshCounter);
+    print("current count is ${refreshCounter}");
+    if (refreshCounter > 0) {
+      // API is taking some time to generate the new text, so it's a safeguard
+      sleep(const Duration(seconds: 3));
       Map<String, String> headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${Env.auth}',
@@ -107,11 +117,10 @@ class _MyHomePageState extends State<MyHomePage> {
       var url = Uri.parse(
           "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
       var res = await client.get(url, headers: headers);
-      cached = res.body;
-      noRefresh = true;
+      print("Got new text");
       return res.body;
     }
-    return cached;
+    return noTextAvailable;
   }
 
   // bool _validateInputFields() {
@@ -173,8 +182,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                             (BuildContext context, int index) {
-                      print(
-                          "Number answers is ${state.state} vs ${userConf.minimumPositive}");
                       return Form(
                           key: _keys[index],
                           child: Padding(
@@ -245,10 +252,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return GenDialog(count: refreshCount);
+                          return GenDialog(count: refreshCounter);
                         }).then((_) {
-                      if (refreshCount > 0) {
-                        refreshCount -= 1;
+                      if (refreshCounter > 0) {
+                        refreshCounter -= 1;
                         setState(() {});
                       }
                     });
