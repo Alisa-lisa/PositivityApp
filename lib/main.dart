@@ -95,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
     usage = UsageStats().getUsage(prefs);
     // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
-    String today = DateTime.now().toString();
+    String today = getTodayAsString();
     if (today != usage.date) {
       usage.setUsage(prefs, today, 2);
     }
@@ -107,9 +107,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
+    // Not sure if it's the best place, but we need to check often enough when the next day is
+    String today = getTodayAsString();
+    if (today != usage.date) {
+      usage.setUsage(prefs, today, 2);
+    }
+
     if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
-      // API is taking some time to generate the new text, so it's a safeguard
-      // sleep(const Duration(seconds: 3));
       Map<String, String> headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${Env.auth}',
