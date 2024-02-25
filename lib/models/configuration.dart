@@ -1,13 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Class properties and respective keys in SharedPreference
-const String AREA_BLIST = "areas";
-const String DIFF_BLIST = "difficulties";
-const String ENDPOINTS = "endpoints";
-const String MIN_ANSWERS = "answers";
-const String PAUSE = "paused";
-const String TIME_FRAME = "twindow";
-const String REMINDERS = "reminders";
+const String areaBlistKey = "areas";
+const String difBlistKey = "difficulties";
+const String endpointsKey = "endpoints";
+const String minAnswersKey = "answers";
+const String pauseKey = "paused";
+const String timeFrameKey = "twindow";
+const String remindersKey = "reminders";
 
 class UserPreference {
   List<String> areaBlacklist = []; // TBD
@@ -20,13 +20,13 @@ class UserPreference {
 
   UserPreference getPreference(SharedPreferences prefs) {
     UserPreference res = UserPreference();
-    res.areaBlacklist = prefs.getStringList(AREA_BLIST) ?? res.areaBlacklist;
+    res.areaBlacklist = prefs.getStringList(areaBlistKey) ?? res.areaBlacklist;
     res.difficultyBlacklist =
-        prefs.getStringList(DIFF_BLIST) ?? res.difficultyBlacklist;
-    res.endpointToUse = prefs.getInt(ENDPOINTS) ?? res.endpointToUse;
-    res.minimumPositive = prefs.getInt(MIN_ANSWERS) ?? res.minimumPositive;
-    res.pause = prefs.getBool(PAUSE) ?? res.pause;
-    res.numberReminders = prefs.getInt(REMINDERS) ?? res.numberReminders;
+        prefs.getStringList(difBlistKey) ?? res.difficultyBlacklist;
+    res.endpointToUse = prefs.getInt(endpointsKey) ?? res.endpointToUse;
+    res.minimumPositive = prefs.getInt(minAnswersKey) ?? res.minimumPositive;
+    res.pause = prefs.getBool(pauseKey) ?? res.pause;
+    res.numberReminders = prefs.getInt(remindersKey) ?? res.numberReminders;
 
     return res;
   }
@@ -34,16 +34,16 @@ class UserPreference {
   Future<UserPreference> setPreference(SharedPreferences prefs, int? endpoints,
       int? minimunAnswers, bool? pause, int? reminders) async {
     if (endpoints != null) {
-      await prefs.setInt(ENDPOINTS, endpoints);
+      await prefs.setInt(endpointsKey, endpoints);
     }
     if (minimunAnswers != null) {
-      await prefs.setInt(MIN_ANSWERS, minimunAnswers);
+      await prefs.setInt(minAnswersKey, minimunAnswers);
     }
     if (pause != null) {
-      await prefs.setBool(PAUSE, pause);
+      await prefs.setBool(pauseKey, pause);
     }
     if (reminders != null) {
-      await prefs.setInt(REMINDERS, reminders);
+      await prefs.setInt(remindersKey, reminders);
     }
 
     return getPreference(prefs);
