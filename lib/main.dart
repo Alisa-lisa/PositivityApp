@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -9,7 +10,6 @@ import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
-import 'package:positivityapp/env/env.dart';
 import 'package:positivityapp/models/usage.dart';
 
 void main() async {
@@ -114,14 +114,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
-      Map<String, String> headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${Env.auth}',
-      };
-      var url = Uri.parse(
-          "${Env.base_url}/api/v2/negative_scenario/$deviceId?difficulty=Difficult&area=Health");
-      var res = await client.get(url, headers: headers);
-      return res.body;
+      var res = await getScenario(client, deviceId);
+      return res;
     }
     return noTextAvailable;
   }

@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String DATE_KEY = "timestamp";
-const String COUNTER_KEY = "daily_refresh";
+const String dateKey = "timestamp";
+const String counterKey = "daily_refresh";
 
 String getTodayAsString() {
   DateTime today = DateTime.now();
@@ -15,18 +15,18 @@ class UsageStats {
 
   UsageStats getUsage(SharedPreferences prefs) {
     UsageStats dailyUsage = UsageStats();
-    dailyUsage.date = prefs.getString(DATE_KEY) ?? getTodayAsString();
-    dailyUsage.refreshCount = prefs.getInt(COUNTER_KEY) ?? 2;
+    dailyUsage.date = prefs.getString(dateKey) ?? getTodayAsString();
+    dailyUsage.refreshCount = prefs.getInt(counterKey) ?? 2;
     return dailyUsage;
   }
 
   Future<UsageStats> setUsage(
       SharedPreferences prefs, String? today, int? newCount) async {
     if (today != null) {
-      await prefs.setString(DATE_KEY, today);
+      await prefs.setString(dateKey, today);
     }
     if (newCount != null) {
-      await prefs.setInt(COUNTER_KEY, newCount);
+      await prefs.setInt(counterKey, newCount);
     }
     return getUsage(prefs);
   }
