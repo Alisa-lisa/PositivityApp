@@ -1,0 +1,2 @@
+LOL=lol
+SERVER=lol

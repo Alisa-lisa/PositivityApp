@@ -62,7 +62,7 @@ class GenDialogState extends State<GenDialog> {
           child: const Text('Ok'),
           onPressed: () {
             setState(() {
-              usage.setUsage(prefs, null, count - 1);
+              usage.setUsage(prefs, getTodayAsString(), count - 1);
             });
             Navigator.of(context).pop();
           },

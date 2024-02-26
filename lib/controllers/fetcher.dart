@@ -16,7 +16,7 @@ Future<String> getScenario(http.Client client, String deviceId) async {
   String area = randomChoice<String>(areas);
   String dif = randomChoice<String>(difficulty, difWeight);
   var url = Uri.parse(
-      "${Env.baseUrl}/api/v2/negative_scenario/$deviceId?difficulty=$dif&area=$area");
+      "${Env.server}/api/v2/negative_scenario/$deviceId?difficulty=$dif&area=$area");
   var res = await client.get(url, headers: headers);
   return res.body;
 }

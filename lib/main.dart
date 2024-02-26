@@ -95,10 +95,6 @@ class _MyHomePageState extends State<MyHomePage> {
     usage = UsageStats().getUsage(prefs);
     // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
-    String today = getTodayAsString();
-    if (today != usage.date) {
-      usage.setUsage(prefs, today, 2);
-    }
     state.setState(userConf.minimumPositive);
     _keys = [];
     for (var i = 0; i < userConf.minimumPositive; i++) {
@@ -110,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Not sure if it's the best place, but we need to check often enough when the next day is
     String today = getTodayAsString();
     if (today != usage.date) {
-      usage.setUsage(prefs, today, 2);
+      await usage.setUsage(prefs, today, 2);
     }
 
     if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
