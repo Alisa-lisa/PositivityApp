@@ -32,8 +32,8 @@ class ConfigDialogState extends State<ConfigDialog> {
     _pause = userConf.pause;
   }
 
-  Map<String, int> endpointsDrop = {"All": 2, "Closed": 0, "MistralAI": 1};
-  Map<int, String> endpointsRevers = {2: "All", 0: "Closed", 1: "MistralAI"};
+  Map<String, int> endpointsDrop = {"All": 2, "Closed": 0, "MixtralAI": 1};
+  Map<int, String> endpointsRevers = {2: "All", 0: "Closed", 1: "MixtralAI"};
 
   List<DropdownMenuItem<String>> getDDItems() {
     List<DropdownMenuItem<String>> res = [];
@@ -94,7 +94,7 @@ class ConfigDialogState extends State<ConfigDialog> {
                                 onChanged: (int? value) {
                                   setState(() {
                                     _answers = value!;
-                                    state.setState(_answers!);
+                                    state.update(minAnswersKey, _answers);
                                   });
                                 },
                                 hint: const Text('Num solutions')))
@@ -155,6 +155,11 @@ class ConfigDialogState extends State<ConfigDialog> {
                           child: const Text("Save"),
                           onPressed: () {
                             setState(() {
+                              state.update(
+                                  endpointsKey, endpointsDrop[_endpoints]);
+                              state.update(minAnswersKey, _answers);
+                              state.update(remindersKey, _reminders);
+                              state.update(pauseKey, _pause);
                               userConf.setPreference(
                                   prefs,
                                   endpointsDrop[_endpoints],

@@ -89,17 +89,26 @@ class _MyHomePageState extends State<MyHomePage> {
   int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
 
+  void setGlobalKeysState(int number) {
+    _keys = [];
+    for (var i = 0; i < userConf.minimumPositive; i++) {
+      _keys.add(GlobalKey<FormState>());
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     usage = UsageStats().getUsage(prefs);
     // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
-    state.setState(userConf.minimumPositive);
-    _keys = [];
-    for (var i = 0; i < userConf.minimumPositive; i++) {
-      _keys.add(GlobalKey<FormState>());
-    }
+    state.add({
+      endpointsKey: userConf.endpointToUse,
+      minAnswersKey: userConf.minimumPositive,
+      remindersKey: userConf.numberReminders,
+      pauseKey: userConf.pause
+    });
+    setGlobalKeysState(state.state[minAnswersKey]);
   }
 
   Future<String> _getText() async {
@@ -108,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (today != usage.date) {
       await usage.setUsage(prefs, today, 2);
     }
-
+    setGlobalKeysState(state.state['answers']);
     if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
       var res = await getScenario(client, deviceId);
       return res;
@@ -195,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               },
                             ),
                           ));
-                    }, childCount: userConf.minimumPositive))),
+                    }, childCount: state.state[minAnswersKey]))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
@@ -236,7 +245,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return ConfigDialog(prefs: prefs, state: state);
-                        });
+                        }).then((_) {
+                      setState(() {});
+                    });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.refresh),

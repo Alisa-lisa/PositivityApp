@@ -1,9 +1,20 @@
 import 'package:bloc/bloc.dart';
 
-class UserConfigCache extends Cubit<int> {
-  UserConfigCache() : super(1);
+class UserConfigCache extends Cubit<Map<String, dynamic>> {
+  UserConfigCache() : super({});
 
-  void setState(int input) {
-    emit(input);
+  void update(String key, dynamic value) {
+    state[key] = value;
+    emit(state);
+  }
+
+  void add(Map<String, dynamic> pair) {
+    state.addAll(pair);
+    emit(state);
+  }
+
+  void remove(String key) {
+    state.remove(key);
+    emit(state);
   }
 }
