@@ -94,7 +94,7 @@ class ConfigDialogState extends State<ConfigDialog> {
                                 onChanged: (int? value) {
                                   setState(() {
                                     _answers = value!;
-                                    state.setState(_answers!);
+                                    state.update(minAnswersKey, _answers);
                                   });
                                 },
                                 hint: const Text('Num solutions')))
@@ -155,6 +155,11 @@ class ConfigDialogState extends State<ConfigDialog> {
                           child: const Text("Save"),
                           onPressed: () {
                             setState(() {
+                              state.update(
+                                  endpointsKey, endpointsDrop[_endpoints]);
+                              state.update(minAnswersKey, _answers);
+                              state.update(remindersKey, _reminders);
+                              state.update(pauseKey, _pause);
                               userConf.setPreference(
                                   prefs,
                                   endpointsDrop[_endpoints],
