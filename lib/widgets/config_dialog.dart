@@ -32,8 +32,8 @@ class ConfigDialogState extends State<ConfigDialog> {
     _pause = userConf.pause;
   }
 
-  Map<String, int> endpointsDrop = {"All": 2, "Closed": 0, "MistralAI": 1};
-  Map<int, String> endpointsRevers = {2: "All", 0: "Closed", 1: "MistralAI"};
+  Map<String, int> endpointsDrop = {"All": 2, "Closed": 0, "MixtralAI": 1};
+  Map<int, String> endpointsRevers = {2: "All", 0: "Closed", 1: "MixtralAI"};
 
   List<DropdownMenuItem<String>> getDDItems() {
     List<DropdownMenuItem<String>> res = [];
