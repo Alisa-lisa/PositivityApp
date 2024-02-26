@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String dateKey = "timestamp";
+const String dateKey = "todays_sessions";
 const String counterKey = "daily_refresh";
 
 String getTodayAsString() {

@@ -7,6 +7,6 @@ part 'env.g.dart';
 abstract class Env {
   @EnviedField(varName: 'AUTH')
   static const String auth = _Env.auth;
-  @EnviedField(varName: 'BASE_URL')
-  static const String baseUrl = _Env.base_url;
+  @EnviedField(varName: 'SERVER')
+  static const String server = _Env.server;
 }

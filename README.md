@@ -19,7 +19,7 @@ BASE_URL="SOME_URL"
 - `flutter pub add build_runner` (you can try using `--dev` flag, but there is an ongoing bug)
 - `flutter pub add envied_generator`
 - `dart run build_runner clean`
-- `dart run build_runner --delete-conflicting-outputs`
+- `dart run build_runner build --delete-conflicting-outputs`
 
 It should create a file `lib/env/env.g.dart`
 
