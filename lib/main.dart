@@ -8,6 +8,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
+import 'package:positivityapp/widgets/usage_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
@@ -234,6 +235,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return const InfoDialog();
+                        }).then((_) {});
+                  }),
+              SpeedDialChild(
+                  child: const Icon(Icons.fact_check),
+                  label: 'Usage',
+                  backgroundColor: Colors.lightBlue.shade300,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return const UsageGuidanceDialog();
                         }).then((_) {});
                   }),
               SpeedDialChild(
