@@ -86,9 +86,10 @@ class _MyHomePageState extends State<MyHomePage> {
   late UserPreference userConf;
   late UsageStats usage;
   late List<GlobalKey> _keys;
-  bool noRefresh = false;
+  bool noRefresh = true;
   int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
+  late String cachedScenario;
 
   void setGlobalKeysState(int number) {
     _keys = [];
@@ -109,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
       remindersKey: userConf.numberReminders,
       pauseKey: userConf.pause
     });
+    noRefresh = false;
     setGlobalKeysState(state.state[minAnswersKey]);
   }
 
@@ -119,11 +121,19 @@ class _MyHomePageState extends State<MyHomePage> {
       await usage.setUsage(prefs, today, 2);
     }
     setGlobalKeysState(state.state['answers']);
-    if (usage.refreshCount! != 0 && refreshCounter <= usage.refreshCount!) {
-      var res = await getScenario(client, deviceId);
-      return res;
+    bool noManualRefreshes =
+        usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
+    // Caused either by limits hit or some dialog trigger that should not fetch a new text
+    if (noRefresh == true) {
+      return noManualRefreshes == true ? noTextAvailable : cachedScenario;
+    } else {
+      if (noManualRefreshes == false) {
+        var res = await getScenario(client, deviceId);
+        cachedScenario = res;
+        return res;
+      }
+      return noTextAvailable;
     }
-    return noTextAvailable;
   }
 
   // bool _validateInputFields() {
@@ -235,7 +245,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return const InfoDialog();
-                        }).then((_) {});
+                        });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.fact_check),
@@ -246,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         builder: (context) {
                           return const UsageGuidanceDialog();
-                        }).then((_) {});
+                        });
                   }),
               SpeedDialChild(
                   child: const Icon(Icons.build),
@@ -258,6 +268,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         builder: (context) {
                           return ConfigDialog(prefs: prefs, state: state);
                         }).then((_) {
+                      noRefresh = true;
                       setState(() {});
                     });
                   }),
@@ -272,6 +283,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           return GenDialog(count: leftRefresh, prefs: prefs);
                         }).then((_) {
                       refreshCounter += 1;
+                      noRefresh = false;
                       setState(() {});
                     });
                   }),
