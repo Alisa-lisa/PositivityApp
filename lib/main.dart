@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/models/configuration.dart';
@@ -128,7 +129,8 @@ class _MyHomePageState extends State<MyHomePage> {
       return noManualRefreshes == true ? noTextAvailable : cachedScenario;
     } else {
       if (noManualRefreshes == false) {
-        var res = await getScenario(client, deviceId);
+        var res =
+            await getScenario(client, deviceId, state.state[endpointsKey]);
         cachedScenario = res;
         return res;
       }

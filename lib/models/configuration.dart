@@ -9,6 +9,9 @@ const String pauseKey = "paused";
 const String timeFrameKey = "twindow";
 const String remindersKey = "reminders";
 
+Map<String, int> endpointsDrop = {"All": 2, "Closed": 0, "MistralAI": 1};
+Map<int, String> endpointsRevers = {2: "All", 0: "Closed", 1: "MistralAI"};
+
 class UserPreference {
   List<String> areaBlacklist = []; // TBD
   List<String> difficultyBlacklist = []; //TBD
