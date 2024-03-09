@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:sqflite/sqflite.dart';
+import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:flutter/material.dart';
 import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/models/configuration.dart';
@@ -17,6 +19,7 @@ import 'package:positivityapp/models/usage.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  Database db = await DatabaseHandler().initializeDB();
   UserConfigCache confCache = UserConfigCache();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
@@ -24,7 +27,11 @@ void main() async {
   String deviceId = androidInfo.id;
   SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(MyApp(
-      prefs: prefs, client: client, deviceId: deviceId, state: confCache));
+      prefs: prefs,
+      client: client,
+      deviceId: deviceId,
+      state: confCache,
+      db: db));
 }
 
 class MyApp extends StatelessWidget {
@@ -32,11 +39,13 @@ class MyApp extends StatelessWidget {
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
+  final Database db;
   const MyApp(
       {required this.prefs,
       required this.client,
       required this.deviceId,
       required this.state,
+      required this.db,
       super.key});
 
   // This widget is the root of your application.
@@ -53,7 +62,8 @@ class MyApp extends StatelessWidget {
           prefs: prefs,
           client: client,
           deviceId: deviceId,
-          state: state),
+          state: state,
+          db: db),
     );
   }
 }
@@ -64,13 +74,16 @@ class MyHomePage extends StatefulWidget {
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
-  const MyHomePage(
-      {super.key,
-      required this.title,
-      required this.prefs,
-      required this.client,
-      required this.state,
-      required this.deviceId});
+  final Database db;
+  const MyHomePage({
+    super.key,
+    required this.title,
+    required this.prefs,
+    required this.client,
+    required this.state,
+    required this.deviceId,
+    required this.db,
+  });
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -82,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   http.Client get client => widget.client;
   String get deviceId => widget.deviceId;
   UserConfigCache get state => widget.state;
+  Database get db => widget.db;
   List<String> tags = ["social", "family", "romantic", "health", "career"];
   List<String> difficulty = ["simple", "neutral", "hard"];
   late UserPreference userConf;
