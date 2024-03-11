@@ -1,14 +1,16 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:positivityapp/const.dart';
 
 Map<int, String> migrationsSteps = {
   1: '''
-	CREATE TABLE Stats (
+	CREATE TABLE $stats (
 		id INTEGER PRIMARY KEY NOT NULL,
 		time TEXT NOT NULL UNIQUE,
     input TEXT NOT NULL,
     difficulty TEXT NOT NULL,
-    area TEXT NOT NULL
+    area TEXT NOT NULL,
+    count INTEGER NOT NULL
 	);
 	'''
 };
