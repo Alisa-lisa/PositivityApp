@@ -49,15 +49,8 @@ class Stats {
     ];
   }
 
-  static Future<int> write(Database db, String time, String input,
-      String difficulty, String area, int count) async {
-    return await db.insert(stats, {
-      'id': null,
-      'time': time,
-      'difficulty': difficulty,
-      'area': area,
-      'count': count
-    });
+  static Future<int> write(Database db, Stats newEntry) async {
+    return await db.insert(stats, newEntry.toMap());
   }
 
   static Future<List<Stats>> filter(Database db) async {

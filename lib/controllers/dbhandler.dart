@@ -5,12 +5,12 @@ import 'package:positivityapp/const.dart';
 Map<int, String> migrationsSteps = {
   1: '''
 	CREATE TABLE $stats (
-		id INTEGER PRIMARY KEY NOT NULL,
-		time TEXT NOT NULL UNIQUE,
-    input TEXT NOT NULL,
-    difficulty TEXT NOT NULL,
-    area TEXT NOT NULL,
-    count INTEGER NOT NULL
+		id INTEGER PRIMARY KEY,
+		time TEXT UNIQUE,
+    input TEXT,
+    difficulty TEXT,
+    area TEXT,
+    count INTEGER
 	);
 	'''
 };

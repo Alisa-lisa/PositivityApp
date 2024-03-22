@@ -101,9 +101,14 @@ class _MyHomePageState extends State<MyHomePage> {
   late UsageStats usage;
   late List<TextEditingController> _controllers;
   bool noRefresh = true;
+  // work-around TextField fetching future builder triggering multipe times
+  bool _noFutureTrigger = true;
+  DateTime lastUpdate = DateTime.now();
   int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
   late String cachedScenario;
+
+  int debugCounter = 0;
 
   void setTextControllers(int number) {
     _controllers = [];
@@ -112,11 +117,17 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  bool isTimeToUpdate() {
+    print(
+        "${lastUpdate} and current time ${DateTime.now()} ${DateTime.now().difference(lastUpdate).inSeconds}");
+    return lastUpdate.difference(DateTime.now()).inSeconds > 30;
+  }
+
   @override
   void initState() {
     super.initState();
+    _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
-    // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
     state.add({
       endpointsKey: 1,
@@ -130,26 +141,34 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<String> _getText() async {
-    // Not sure if it's the best place, but we need to check often enough when the next day is
-    String today = getTodayAsString();
-    if (today != usage.date) {
-      await usage.setUsage(prefs, today, 2);
-    }
-    // setTextControllers(state.state['answers']);
-    bool noManualRefreshes =
-        usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
-    // Caused either by limits hit or some dialog trigger that should not fetch a new text
-    if (noRefresh == true) {
-      return noManualRefreshes == true ? noTextAvailable : cachedScenario;
-    } else {
-      if (noManualRefreshes == false) {
-        var res =
-            await getScenario(client, deviceId, state.state[endpointsKey]);
-        cachedScenario = res;
-        return res;
+    print("${_noFutureTrigger} and check condition ${isTimeToUpdate()}");
+    if (_noFutureTrigger == false || isTimeToUpdate()) {
+      _noFutureTrigger = true;
+      lastUpdate = DateTime.now();
+      // Not sure if it's the best place, but we need to check often enough when the next day is
+      String today = getTodayAsString();
+      if (today != usage.date) {
+        await usage.setUsage(prefs, today, 2);
       }
-      return noTextAvailable;
+      // setTextControllers(state.state['answers']);
+      bool noManualRefreshes =
+          usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
+      // Caused either by limits hit or some dialog trigger that should not fetch a new text
+      if (noRefresh == true) {
+        return noManualRefreshes == true ? noTextAvailable : cachedScenario;
+      } else {
+        if (noManualRefreshes == false) {
+          var res =
+              await getScenario(client, deviceId, state.state[endpointsKey]);
+          // debugCounter += 1;
+          // var res = "Calling backend $debugCounter";
+          cachedScenario = res;
+          return res;
+        }
+        return noTextAvailable;
+      }
     }
+    return cachedScenario;
   }
 
   @override
@@ -168,7 +187,6 @@ class _MyHomePageState extends State<MyHomePage> {
         body: FutureBuilder(
             future: _getText(),
             builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              print(snapshot);
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -228,10 +246,19 @@ class _MyHomePageState extends State<MyHomePage> {
                           if (c.text.isNotEmpty) {
                             answers += 1;
                           }
+                          c.clear();
                         }
-                        await Stats.write(db, DateTime.now().toString(),
-                            snapshot.data!, "TBD", "TBD", answers);
-                        // TODO: save stats, clean screen and update text field, disable go button validate all fields properly
+                        await Stats.write(
+                            db,
+                            Stats(
+                                time: DateTime.now().toString(),
+                                input: snapshot.data!.toString(),
+                                difficulty: "TBD",
+                                area: "TBD",
+                                count: answers));
+                        lastUpdate = DateTime.now();
+                        cachedScenario = "Good job! Stay positive!";
+                        setState(() {});
                       },
                       child: const Text('Go'),
                     ),
@@ -293,6 +320,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         }).then((_) {
                       refreshCounter += 1;
                       noRefresh = false;
+                      _noFutureTrigger = false;
                       setState(() {});
                     });
                   }),
