@@ -118,8 +118,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   bool isTimeToUpdate() {
-    print(
-        "${lastUpdate} and current time ${DateTime.now()} ${DateTime.now().difference(lastUpdate).inSeconds}");
     return lastUpdate.difference(DateTime.now()).inSeconds > 30;
   }
 
@@ -140,8 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setTextControllers(state.state[minAnswersKey]);
   }
 
-  Future<String> _getText() async {
-    print("${_noFutureTrigger} and check condition ${isTimeToUpdate()}");
+  Future<List<String>> _getText() async {
     if (_noFutureTrigger == false || isTimeToUpdate()) {
       _noFutureTrigger = true;
       lastUpdate = DateTime.now();
@@ -155,20 +152,22 @@ class _MyHomePageState extends State<MyHomePage> {
           usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
       // Caused either by limits hit or some dialog trigger that should not fetch a new text
       if (noRefresh == true) {
-        return noManualRefreshes == true ? noTextAvailable : cachedScenario;
+        String text =
+            noManualRefreshes == true ? noTextAvailable : cachedScenario;
+        return [text, "None", "None"];
       } else {
         if (noManualRefreshes == false) {
           var res =
               await getScenario(client, deviceId, state.state[endpointsKey]);
           // debugCounter += 1;
           // var res = "Calling backend $debugCounter";
-          cachedScenario = res;
+          cachedScenario = res[0];
           return res;
         }
-        return noTextAvailable;
+        return [noTextAvailable, "None", "None"];
       }
     }
-    return cachedScenario;
+    return [cachedScenario, "None", "None"];
   }
 
   @override
@@ -186,7 +185,8 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: FutureBuilder(
             future: _getText(),
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+            builder:
+                (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -206,7 +206,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           color: Colors.blue[50],
                           child: Padding(
                               padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
-                              child: Text(snapshot.data.toString(),
+                              child: Text(snapshot.data![0].toString(),
                                   style: const TextStyle(fontSize: 18))),
                         )),
                         const SizedBox(height: 16.0),
@@ -252,9 +252,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             db,
                             Stats(
                                 time: DateTime.now().toString(),
-                                input: snapshot.data!.toString(),
-                                difficulty: "TBD",
-                                area: "TBD",
+                                input: snapshot.data![0].toString(),
+                                difficulty: snapshot.data![1].toString(),
+                                area: snapshot.data![2].toString(),
                                 count: answers));
                         lastUpdate = DateTime.now();
                         cachedScenario = "Good job! Stay positive!";

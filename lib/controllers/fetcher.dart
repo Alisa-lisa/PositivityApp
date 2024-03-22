@@ -10,7 +10,7 @@ const List<double> difWeight = [0.75, 0.25, 0.05];
 const List<String> endpoints = ["v2", "v1"];
 const List<double> endpWeights = [0.75, 0.25];
 
-Future<String> getScenario(
+Future<List<String>> getScenario(
     http.Client client, String deviceId, int userEndpoints) async {
   Map<String, String> headers = {
     'Content-Type': 'application/json',
@@ -30,5 +30,5 @@ Future<String> getScenario(
   var url = Uri.parse(
       "${Env.server}/api/$endpoint/negative_scenario/$deviceId?difficulty=$dif&area=$area");
   var res = await client.get(url, headers: headers);
-  return res.body;
+  return [res.body, dif, area];
 }
