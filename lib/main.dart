@@ -118,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   bool isTimeToUpdate() {
-    return lastUpdate.difference(DateTime.now()).inSeconds > 30;
+    return lastUpdate.difference(DateTime.now()).inMinutes > 60;
   }
 
   @override
