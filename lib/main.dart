@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'package:sqflite/sqflite.dart';
+import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:flutter/material.dart';
 import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/models/configuration.dart';
@@ -13,10 +14,12 @@ import 'package:positivityapp/widgets/usage_dialog.dart';
 import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
+import 'package:positivityapp/models/stats_db.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  Database db = await DatabaseHandler().initializeDB();
   UserConfigCache confCache = UserConfigCache();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
@@ -24,7 +27,11 @@ void main() async {
   String deviceId = androidInfo.id;
   SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(MyApp(
-      prefs: prefs, client: client, deviceId: deviceId, state: confCache));
+      prefs: prefs,
+      client: client,
+      deviceId: deviceId,
+      state: confCache,
+      db: db));
 }
 
 class MyApp extends StatelessWidget {
@@ -32,11 +39,13 @@ class MyApp extends StatelessWidget {
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
+  final Database db;
   const MyApp(
       {required this.prefs,
       required this.client,
       required this.deviceId,
       required this.state,
+      required this.db,
       super.key});
 
   // This widget is the root of your application.
@@ -53,7 +62,8 @@ class MyApp extends StatelessWidget {
           prefs: prefs,
           client: client,
           deviceId: deviceId,
-          state: state),
+          state: state,
+          db: db),
     );
   }
 }
@@ -64,13 +74,16 @@ class MyHomePage extends StatefulWidget {
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
-  const MyHomePage(
-      {super.key,
-      required this.title,
-      required this.prefs,
-      required this.client,
-      required this.state,
-      required this.deviceId});
+  final Database db;
+  const MyHomePage({
+    super.key,
+    required this.title,
+    required this.prefs,
+    required this.client,
+    required this.state,
+    required this.deviceId,
+    required this.db,
+  });
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -82,73 +95,83 @@ class _MyHomePageState extends State<MyHomePage> {
   http.Client get client => widget.client;
   String get deviceId => widget.deviceId;
   UserConfigCache get state => widget.state;
-  List<String> tags = ["social", "family", "romantic", "health", "career"];
-  List<String> difficulty = ["simple", "neutral", "hard"];
+  Database get db => widget.db;
   late UserPreference userConf;
   late UsageStats usage;
-  late List<GlobalKey> _keys;
+  late List<TextEditingController> _controllers;
   bool noRefresh = true;
+  // work-around TextField fetching future builder triggering multipe times
+  bool _noFutureTrigger = true;
+  DateTime lastUpdate = DateTime.now();
   int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
   late String cachedScenario;
 
-  void setGlobalKeysState(int number) {
-    _keys = [];
+  int debugCounter = 0;
+
+  void setTextControllers(int number) {
+    _controllers = [];
     for (var i = 0; i < userConf.minimumPositive; i++) {
-      _keys.add(GlobalKey<FormState>());
+      _controllers.add(TextEditingController());
     }
+  }
+
+  bool isTimeToUpdate() {
+    return lastUpdate.difference(DateTime.now()).inMinutes > 60;
   }
 
   @override
   void initState() {
     super.initState();
+    _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
-    // counter variabke is used for timely widget updates, where prefernce object is used for between sessions tracking
     userConf = UserPreference().getPreference(prefs);
     state.add({
-      endpointsKey: userConf.endpointToUse,
+      endpointsKey: 1,
+      // endpointsKey: userConf.endpointToUse,
       minAnswersKey: userConf.minimumPositive,
       remindersKey: userConf.numberReminders,
       pauseKey: userConf.pause
     });
     noRefresh = false;
-    setGlobalKeysState(state.state[minAnswersKey]);
+    setTextControllers(state.state[minAnswersKey]);
   }
 
-  Future<String> _getText() async {
-    // Not sure if it's the best place, but we need to check often enough when the next day is
-    String today = getTodayAsString();
-    if (today != usage.date) {
-      await usage.setUsage(prefs, today, 2);
-    }
-    setGlobalKeysState(state.state['answers']);
-    bool noManualRefreshes =
-        usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
-    // Caused either by limits hit or some dialog trigger that should not fetch a new text
-    if (noRefresh == true) {
-      return noManualRefreshes == true ? noTextAvailable : cachedScenario;
-    } else {
-      if (noManualRefreshes == false) {
-        var res =
-            await getScenario(client, deviceId, state.state[endpointsKey]);
-        cachedScenario = res;
-        return res;
+  Future<List<String>> _getText() async {
+    if (_noFutureTrigger == false || isTimeToUpdate()) {
+      _noFutureTrigger = true;
+      lastUpdate = DateTime.now();
+      // Not sure if it's the best place, but we need to check often enough when the next day is
+      String today = getTodayAsString();
+      if (today != usage.date) {
+        await usage.setUsage(prefs, today, 2);
       }
-      return noTextAvailable;
+      // setTextControllers(state.state['answers']);
+      bool noManualRefreshes =
+          usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
+      // Caused either by limits hit or some dialog trigger that should not fetch a new text
+      if (noRefresh == true) {
+        String text =
+            noManualRefreshes == true ? noTextAvailable : cachedScenario;
+        return [text, "None", "None"];
+      } else {
+        if (noManualRefreshes == false) {
+          var res =
+              await getScenario(client, deviceId, state.state[endpointsKey]);
+          // debugCounter += 1;
+          // var res = "Calling backend $debugCounter";
+          cachedScenario = res[0];
+          return res;
+        }
+        return [noTextAvailable, "None", "None"];
+      }
     }
+    return [cachedScenario, "None", "None"];
   }
-
-  // bool _validateInputFields() {
-  //   for (final k in _keys) {
-  //     if (!k.currentState!.validate()) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // }
 
   @override
   Widget build(BuildContext context) {
+    int answers = 0;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     int leftRefresh = usage.refreshCount! - refreshCounter >= 0
@@ -161,7 +184,8 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: FutureBuilder(
             future: _getText(),
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+            builder:
+                (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -181,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           color: Colors.blue[50],
                           child: Padding(
                               padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
-                              child: Text(snapshot.data.toString(),
+                              child: Text(snapshot.data![0].toString(),
                                   style: const TextStyle(fontSize: 18))),
                         )),
                         const SizedBox(height: 16.0),
@@ -200,31 +224,40 @@ class _MyHomePageState extends State<MyHomePage> {
                     sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                             (BuildContext context, int index) {
-                      return Form(
-                          key: _keys[index],
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-                            child: TextFormField(
-                              obscureText: false,
-                              decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  labelText: 'Optimistic/Positive outlook'),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter some text';
-                                }
-                                return null; // Return null if the input is valid
-                              },
-                            ),
-                          ));
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+                        child: TextField(
+                          controller: _controllers[index],
+                          obscureText: false,
+                          decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Optimistic outlook'),
+                        ),
+                      );
                     }, childCount: state.state[minAnswersKey]))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
                   return Center(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: save stats, clean screen and update text field, disable go button validate all fields properly
+                      onPressed: () async {
+                        for (var c in _controllers) {
+                          if (c.text.isNotEmpty) {
+                            answers += 1;
+                          }
+                          c.clear();
+                        }
+                        await Stats.write(
+                            db,
+                            Stats(
+                                time: DateTime.now().toString(),
+                                input: snapshot.data![0].toString(),
+                                difficulty: snapshot.data![1].toString(),
+                                area: snapshot.data![2].toString(),
+                                count: answers));
+                        lastUpdate = DateTime.now();
+                        cachedScenario = "Good job! Stay positive!";
+                        setState(() {});
                       },
                       child: const Text('Go'),
                     ),
@@ -286,6 +319,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         }).then((_) {
                       refreshCounter += 1;
                       noRefresh = false;
+                      _noFutureTrigger = false;
                       setState(() {});
                     });
                   }),
