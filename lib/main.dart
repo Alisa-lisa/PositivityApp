@@ -190,26 +190,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
-                  return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Center(
-                            child: Text("Life Scenario:",
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold))),
-                        Center(
-                            child: Container(
-                          height: height * 0.3,
-                          width: width * 0.96,
-                          color: Colors.blue[50],
-                          child: Padding(
-                              padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
-                              child: Text(snapshot.data![0].toString(),
-                                  style: const TextStyle(fontSize: 18))),
-                        )),
-                        const SizedBox(height: 16.0),
-                      ]);
+                  if (_noFutureTrigger != true &&
+                      snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else {
+                    return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Center(
+                              child: Text("Life Scenario:",
+                                  style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold))),
+                          Center(
+                              child: Container(
+                            height: height * 0.3,
+                            width: width * 0.96,
+                            color: Colors.blue[50],
+                            child: Padding(
+                                padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
+                                child: Text(snapshot.data![0].toString(),
+                                    style: const TextStyle(fontSize: 18))),
+                          )),
+                          const SizedBox(height: 16.0),
+                        ]);
+                  }
                 }, childCount: 1)),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
