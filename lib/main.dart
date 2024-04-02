@@ -20,11 +20,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
   Database db = await DatabaseHandler().initializeDB();
-  UserConfigCache confCache = UserConfigCache();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
+  UserConfigCache confCache = UserConfigCache();
+  confCache.add({"cache": (await getScenario(client, deviceId, 1))});
   SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(MyApp(
       prefs: prefs,
@@ -111,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void setTextControllers(int number) {
     _controllers = [];
-    for (var i = 0; i < userConf.minimumPositive; i++) {
+    for (var i = 0; i < state.state[minAnswersKey]; i++) {
       _controllers.add(TextEditingController());
     }
   }
@@ -146,7 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
       if (today != usage.date) {
         await usage.setUsage(prefs, today, 2);
       }
-      // setTextControllers(state.state['answers']);
       bool noManualRefreshes =
           usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
       // Caused either by limits hit or some dialog trigger that should not fetch a new text
@@ -231,7 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           obscureText: false,
                           decoration: const InputDecoration(
                               border: OutlineInputBorder(),
-                              labelText: 'Optimistic outlook'),
+                              labelText: 'your idea'),
                         ),
                       );
                     }, childCount: state.state[minAnswersKey]))),
@@ -265,8 +265,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }, childCount: 1)),
               ]);
             }),
-        floatingActionButtonLocation:
-            FloatingActionButtonLocation.miniCenterFloat,
+        floatingActionButtonLocation: FloatingActionButtonLocation.miniEndFloat,
         floatingActionButton: SpeedDial(
             icon: Icons.account_circle,
             backgroundColor: Colors.lightBlue.shade100,
