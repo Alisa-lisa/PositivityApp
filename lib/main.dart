@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
-
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
@@ -24,7 +23,7 @@ void main() async {
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
-  UserConfigCache confCache = UserConfigCache();
+  UserConfigCache confCache = UserConfigCache(); // use bloc state management
   confCache.add({"cache": (await getScenario(client, deviceId, 1))});
   SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(MyApp(
@@ -49,7 +48,6 @@ class MyApp extends StatelessWidget {
       required this.db,
       super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -118,7 +116,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   bool isTimeToUpdate() {
-    return lastUpdate.difference(DateTime.now()).inMinutes > 60;
+    return lastUpdate.difference(DateTime.now()).inMinutes >
+        3 * 60; // Opening an app once in 3h will fetch a new scenario
   }
 
   @override
@@ -191,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
                   if (_noFutureTrigger != true &&
-                      snapshot.connectionState == ConnectionState.waiting) {
+                      snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.hasError) ) {
                     return const Center(
                       child: CircularProgressIndicator(),
                     );
@@ -211,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             color: Colors.blue[50],
                             child: Padding(
                                 padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
-                                child: Text(snapshot.data![0].toString(),
+                                child: Text(snapshot.hasData ? snapshot.data![0].toString() : state.state['cache'][0],
                                     style: const TextStyle(fontSize: 18))),
                           )),
                           const SizedBox(height: 16.0),
