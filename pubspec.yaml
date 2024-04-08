@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   flutter_speed_dial:
   shared_preferences:
-  http: 
+  http:
   device_info_plus:
   envied:
   url_launcher:
@@ -86,12 +86,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+  fonts:
+    - family: AbriilFatface
+      fonts:
+        - asset: fonts/AbrilFatface-Regular.ttf
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf

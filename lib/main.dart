@@ -1,3 +1,4 @@
+import 'package:positivityapp/const.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +42,8 @@ class MyApp extends StatelessWidget {
   final UserConfigCache state;
   final Database db;
   const MyApp(
-      {required this.prefs,
+      {
+      required this.prefs,
       required this.client,
       required this.deviceId,
       required this.state,
@@ -101,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool noRefresh = true;
   // work-around TextField fetching future builder triggering multipe times
   bool _noFutureTrigger = true;
-  DateTime lastUpdate = DateTime.now();
+  late DateTime lastUpdate;
   int refreshCounter = 0;
   String noTextAvailable = "No new scenario for now!";
   late String cachedScenario;
@@ -116,13 +118,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   bool isTimeToUpdate() {
-    return lastUpdate.difference(DateTime.now()).inMinutes >
-        3 * 60; // Opening an app once in 3h will fetch a new scenario
+    return lastUpdate.difference(DateTime.now()).inMinutes > downtime; // Opening an app once in 3h will fetch a new scenario
   }
 
   @override
   void initState() {
     super.initState();
+    lastUpdate = DateTime.now();
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
@@ -138,7 +140,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<String>> _getText() async {
+    setTextControllers(state.state[minAnswersKey]);
     if (_noFutureTrigger == false || isTimeToUpdate()) {
+
       _noFutureTrigger = true;
       lastUpdate = DateTime.now();
       // Not sure if it's the best place, but we need to check often enough when the next day is
@@ -199,17 +203,23 @@ class _MyHomePageState extends State<MyHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Center(
-                              child: Text("Life Scenario:",
+                              child: Padding( 
+			      	padding: EdgeInsets.fromLTRB(0, 5, 0, 0),
+			      	child: Text("Life Problem:",
                                   style: TextStyle(
                                       fontSize: 24,
-                                      fontWeight: FontWeight.bold))),
+				      fontFamily: 'AbriilFatface',
+                                      fontWeight: FontWeight.bold)))),
                           Center(
                               child: Container(
                             height: height * 0.3,
                             width: width * 0.96,
-                            color: Colors.blue[50],
+			    decoration: BoxDecoration(
+				color: Colors.blue[50],
+			    	borderRadius: const BorderRadius.all(Radius.circular(10.0))
+			    ),
                             child: Padding(
-                                padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
+                                padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
                                 child: Text(snapshot.hasData ? snapshot.data![0].toString() : state.state['cache'][0],
                                     style: const TextStyle(fontSize: 18))),
                           )),
@@ -223,7 +233,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   return const Center(
                       child: Text("Optimistic views:",
                           style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold)));
+				fontFamily: 'AbriilFatface',
+                              	fontSize: 24,
+				fontWeight: FontWeight.bold)));
                 }, childCount: 1)),
                 SliverPadding(
                     padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),

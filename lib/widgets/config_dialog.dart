@@ -54,120 +54,129 @@ class ConfigDialogState extends State<ConfigDialog> {
   Widget build(BuildContext context) {
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
+    int numComponents = 4; // A hack around size of the config box
     return Dialog(
         child: SingleChildScrollView(
             child: SizedBox(
                 width: width * 0.9,
-                height: height * 0.8,
+                height: height / numComponents + 20,
                 child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      const Text("Configuration"),
-                      Row(children: [
-                        const Expanded(
-                            child:
-                                Text("Endpoits", textAlign: TextAlign.center)),
-                        Expanded(
-                            child: DropdownButton<String>(
-                                focusColor: Colors.white,
-                                value: _endpoints,
-                                items: getDDItems(),
-                                onChanged: (String? value) {
-                                  setState(() {
-                                    _endpoints = value!;
-                                  });
-                                },
-                                hint: const Text('Text gen')))
-                      ]),
-                      Row(children: [
-                        const Expanded(
-                            child: Text("Min answers",
-                                textAlign: TextAlign.center)),
-                        Expanded(
-                            child: DropdownButton<int>(
-                                focusColor: Colors.white,
-                                value: _answers,
-                                items: getNumAnswers(),
-                                onChanged: (int? value) {
-                                  setState(() {
-                                    _answers = value!;
-                                    state.update(minAnswersKey, _answers);
-                                  });
-                                },
-                                hint: const Text('Num solutions')))
-                      ]),
-                      Row(children: [
-                        const Expanded(
-                            child: Text("Daily reminders",
-                                textAlign: TextAlign.center)),
-                        Expanded(
-                            child: DropdownButton<int>(
-                                focusColor: Colors.white,
-                                value: _reminders,
-                                items: getNumAnswers(),
-                                onChanged: (int? value) {
-                                  setState(() {
-                                    _reminders = value!;
-                                  });
-                                },
-                                hint: const Text('Reminders per day')))
-                      ]),
-                      Row(children: [
-                        const Expanded(
-                            child: Text(
-                          "Pause reminders",
-                          textAlign: TextAlign.center,
-                        )),
-                        Expanded(
-                            child: Switch(
-                          value: _pause!,
-                          activeColor: Colors.blue,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _pause = value;
-                            });
-                          },
-                        ))
-                      ]),
-                      Stack(children: [
-                        Positioned.fill(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: <Color>[
-                                  Color(0xFF0D47A1),
-                                  Color(0xFF1976D2),
-                                  Color(0xFF42A5F5),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.all(16.0),
-                            textStyle: const TextStyle(fontSize: 20),
-                          ),
-                          child: const Text("Save"),
-                          onPressed: () {
-                            setState(() {
-                              state.update(
-                                  endpointsKey, endpointsDrop[_endpoints]);
-                              state.update(minAnswersKey, _answers);
-                              state.update(remindersKey, _reminders);
-                              state.update(pauseKey, _pause);
-                              userConf.setPreference(
-                                  prefs,
-                                  endpointsDrop[_endpoints],
-                                  _answers,
-                                  _pause,
-                                  _reminders);
-                            });
-                            Navigator.of(context).pop();
-                          },
-                        )
-                      ]),
-                    ]))));
+			children: [
+				const Flexible(
+				flex: 1,
+				child:  Center(child: Text("Configuration")),
+			),
+				Flexible(flex: 3, child: Column(
+					    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+					    children: [
+						Row(children: [
+						const Expanded(
+						    child:
+							Text("Endpoits", textAlign: TextAlign.center)),
+						Expanded(
+						    child: DropdownButton<String>(
+							focusColor: Colors.white,
+							value: _endpoints,
+							items: getDDItems(),
+							onChanged: (String? value) {
+							  setState(() {
+							    _endpoints = value!;
+							  });
+							},
+							hint: const Text('Text gen')))
+					      ]),
+					      Row(children: [
+						const Expanded(
+						    child: Text("Min answers",
+							textAlign: TextAlign.center)),
+						Expanded(
+						    child: DropdownButton<int>(
+							focusColor: Colors.white,
+							value: _answers,
+							items: getNumAnswers(),
+							onChanged: (int? value) {
+							  setState(() {
+							    _answers = value!;
+							    state.update(minAnswersKey, _answers);
+							  });
+							},
+							hint: const Text('Num solutions')))
+					      ]),
+					      // Row(children: [
+					      //   const Expanded(
+					      //       child: Text("Daily reminders",
+					      //           textAlign: TextAlign.center)),
+					      //   Expanded(
+					      //       child: DropdownButton<int>(
+					      //           focusColor: Colors.white,
+					      //           value: _reminders,
+					      //           items: getNumAnswers(),
+					      //           onChanged: (int? value) {
+					      //             setState(() {
+					      //               _reminders = value!;
+					      //             });
+					      //           },
+					      //           hint: const Text('Reminders per day')))
+					      // ]),
+					      // Row(children: [
+					      //   const Expanded(
+					      //       child: Text(
+					      //     "Pause reminders",
+					      //     textAlign: TextAlign.center,
+					      //   )),
+					      //   Expanded(
+					      //       child: Switch(
+					      //     value: _pause!,
+					      //     activeColor: Colors.blue,
+					      //     onChanged: (bool value) {
+					      //       setState(() {
+					      //         _pause = value;
+					      //       });
+					      //     },
+					      //   ))
+					      // ]),
+					      Stack(children: [
+						Positioned.fill(
+						  child: Container(
+						    decoration: const BoxDecoration(
+						      gradient: LinearGradient(
+							colors: <Color>[
+							  Color(0xFF0D47A1),
+							  Color(0xFF1976D2),
+							  Color(0xFF42A5F5),
+							],
+						      ),
+						    ),
+						  ),
+						),
+						TextButton(
+						  style: TextButton.styleFrom(
+						    foregroundColor: Colors.white,
+						    padding: const EdgeInsets.all(8.0),
+						    textStyle: const TextStyle(fontSize: 12),
+						  ),
+						  child: const Text("Save"),
+						  onPressed: () {
+						    setState(() {
+						      state.update(
+							  endpointsKey, endpointsDrop[_endpoints]);
+						      state.update(minAnswersKey, _answers);
+						      state.update(remindersKey, _reminders);
+						      state.update(pauseKey, _pause);
+						      userConf.setPreference(
+							  prefs,
+							  endpointsDrop[_endpoints],
+							  _answers,
+							  _pause,
+							  _reminders);
+						    });
+						    Navigator.of(context).pop();
+						  },
+						)
+					      ]),
+					    ]) ) ]
+					    )
+		)
+		));
   }
 }
