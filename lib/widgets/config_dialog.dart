@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:multi_dropdown/multiselect_dropdown.dart';
 import 'package:positivityapp/models/configuration.dart';
 
 class ConfigDialog extends StatefulWidget {
@@ -19,8 +20,8 @@ class ConfigDialogState extends State<ConfigDialog> {
 
   String? _endpoints;
   int? _answers;
-  int? _reminders;
-  bool? _pause;
+  final MultiSelectController<String> _controller = MultiSelectController();
+  // final List<ValueItem> _blacklistedAreas = [];
 
   @override
   void initState() {
@@ -28,8 +29,6 @@ class ConfigDialogState extends State<ConfigDialog> {
     userConf = UserPreference().getPreference(prefs);
     _endpoints = endpointsRevers[userConf.endpointToUse];
     _answers = userConf.minimumPositive;
-    _reminders = userConf.numberReminders;
-    _pause = userConf.pause;
   }
 
   List<DropdownMenuItem<String>> getDDItems() {
@@ -96,39 +95,32 @@ class ConfigDialogState extends State<ConfigDialog> {
                                 },
                                 hint: const Text('Num solutions')))
                       ]),
-                      Row(children: [
-                        const Expanded(
-                            child: Text("Daily reminders",
-                                textAlign: TextAlign.center)),
-                        Expanded(
-                            child: DropdownButton<int>(
-                                focusColor: Colors.white,
-                                value: _reminders,
-                                items: getNumAnswers(),
-                                onChanged: (int? value) {
-                                  setState(() {
-                                    _reminders = value!;
-                                  });
-                                },
-                                hint: const Text('Reminders per day')))
-                      ]),
-                      Row(children: [
-                        const Expanded(
-                            child: Text(
-                          "Pause reminders",
-                          textAlign: TextAlign.center,
-                        )),
-                        Expanded(
-                            child: Switch(
-                          value: _pause!,
-                          activeColor: Colors.blue,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _pause = value;
-                            });
-                          },
-                        ))
-                      ]),
+		      Row(children: <Widget>[
+			const Expanded(child: Text("Exclude topics", textAlign: TextAlign.center)),
+			Expanded(child: MultiSelectDropDown(
+              // showClearIcon: true,
+              controller: _controller,
+              onOptionSelected: (options) {
+                debugPrint(options.toString());
+              },
+              options: const <ValueItem>[
+                ValueItem(label: 'Option 1', value: '1'),
+                ValueItem(label: 'Option 2', value: '2'),
+                ValueItem(label: 'Option 3', value: '3'),
+                ValueItem(label: 'Option 4', value: '4'),
+                ValueItem(label: 'Option 5', value: '5'),
+                ValueItem(label: 'Option 6', value: '6'),
+              ],
+              maxItems: 4,
+              // disabledOptions: const [ValueItem(label: 'Option 1', value: '1')],
+              selectionType: SelectionType.multi,
+              chipConfig: const ChipConfig(wrapType: WrapType.wrap),
+              dropdownHeight: 300,
+              optionTextStyle: const TextStyle(fontSize: 16),
+              selectedOptionIcon: const Icon(Icons.check_circle),
+            ),)
+		      ]
+			      ),
                       Stack(children: [
                         Positioned.fill(
                           child: Container(
@@ -155,14 +147,12 @@ class ConfigDialogState extends State<ConfigDialog> {
                               state.update(
                                   endpointsKey, endpointsDrop[_endpoints]);
                               state.update(minAnswersKey, _answers);
-                              state.update(remindersKey, _reminders);
-                              state.update(pauseKey, _pause);
                               userConf.setPreference(
                                   prefs,
                                   endpointsDrop[_endpoints],
                                   _answers,
-                                  _pause,
-                                  _reminders);
+				  null, null
+				  );
                             });
                             Navigator.of(context).pop();
                           },

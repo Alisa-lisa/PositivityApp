@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   flutter_speed_dial:
   shared_preferences:
-  http: 
+  http:
   device_info_plus:
   envied:
   url_launcher:
@@ -40,6 +40,7 @@ dependencies:
   dart_random_choice:
   sqflite:
   csv:
+  multi_dropdown:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
