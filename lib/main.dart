@@ -15,17 +15,19 @@ import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
 import 'package:positivityapp/models/stats_db.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
+  await dotenv.load(fileName: ".env");
   Database db = await DatabaseHandler().initializeDB();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
-  confCache.add({"cache": (await getScenario(client, deviceId, 1))});
+  confCache.add({"cache": (await getScenario(client, deviceId))});
   SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(MyApp(
       prefs: prefs,
@@ -156,8 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return [text, "None", "None"];
       } else {
         if (noManualRefreshes == false) {
-          var res =
-              await getScenario(client, deviceId, state.state[endpointsKey]);
+          var res = await getScenario(client, deviceId);
           // debugCounter += 1;
           // var res = "Calling backend $debugCounter";
           cachedScenario = res[0];
