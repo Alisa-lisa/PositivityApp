@@ -114,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void setTextControllers(int number) {
     _controllers = [];
-    for (var i = 0; i < state.state[minAnswersKey]; i++) {
+    for (var i = 0; i < userConf.minAnswers; i++) {
       _controllers.add(TextEditingController());
     }
   }
@@ -129,15 +129,15 @@ class _MyHomePageState extends State<MyHomePage> {
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
-    state.add({
-      endpointsKey: 1,
-      // endpointsKey: userConf.endpointToUse,
-      minAnswersKey: userConf.minimumPositive,
-      remindersKey: userConf.numberReminders,
-      pauseKey: userConf.pause
-    });
+    // state.add({
+    //   endpointsKey: 1,
+    //   // endpointsKey: userConf.endpointToUse,
+    //   minAnswersKey: userConf.minimumPositive,
+    //   remindersKey: userConf.numberReminders,
+    //   pauseKey: userConf.pause
+    // });
     noRefresh = false;
-    setTextControllers(state.state[minAnswersKey]);
+    setTextControllers(userConf.minAnswers);
   }
 
   Future<List<String>> _getText() async {
@@ -242,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               labelText: 'your idea'),
                         ),
                       );
-                    }, childCount: state.state[minAnswersKey]))),
+                    }, childCount: userConf.minAnswers))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
