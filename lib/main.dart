@@ -1,3 +1,4 @@
+import 'package:positivityapp/const.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,10 +31,12 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   UserPreference userConf = UserPreference().getPreference(prefs);
 // TBD: fix proper pre-cached scenario based on user preference
-  confCache.add({
-    "cache": (await getScenario(
-        client, deviceId, userConf.topics, userConf.difficulty))
-  });
+  String scenario = "Configure you request to call generation";
+  if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
+    scenario = (await getScenario(
+        client, deviceId, userConf.topics, userConf.difficulty))[0];
+  }
+  confCache.add({"cache": scenario});
   runApp(MyApp(
       prefs: prefs,
       client: client,
@@ -134,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
-    cachedScenario = state.state["cache"][0];
+    cachedScenario = state.state["cache"];
     noRefresh = false;
     setTextControllers(userConf.minAnswers);
   }
