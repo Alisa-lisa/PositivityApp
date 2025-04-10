@@ -1,2 +1,0 @@
-/home/alisa/projects/private/PositivityApp/android/app/.cxx/Debug/733x1p69/armeabi-v7a/CMakeFiles/edit_cache.dir
-/home/alisa/projects/private/PositivityApp/android/app/.cxx/Debug/733x1p69/armeabi-v7a/CMakeFiles/rebuild_cache.dir

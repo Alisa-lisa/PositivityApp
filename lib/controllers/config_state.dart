@@ -1,7 +1,8 @@
 import 'package:bloc/bloc.dart';
 
 class UserConfigCache extends Cubit<Map<String, dynamic>> {
-  UserConfigCache() : super({});
+  UserConfigCache()
+      : super({"topics": [], "numberAnswers": 3, "difficulty": []});
 
   void update(String key, dynamic value) {
     state[key] = value;

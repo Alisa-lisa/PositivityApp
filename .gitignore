@@ -42,6 +42,7 @@
 /dev/integration_tests/**/xcuserdata
 /dev/integration_tests/**/Pods
 /packages/flutter/coverage/
+/android/app/.cxx/Debug/
 version
 analysis_benchmark.json
 

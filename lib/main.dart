@@ -1,13 +1,14 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:flutter/material.dart';
-import 'package:positivityapp/controllers/fetcher.dart';
-import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:positivityapp/controllers/fetcher.dart';
+import 'package:positivityapp/controllers/dbhandler.dart';
+import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
@@ -15,7 +16,7 @@ import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
 import 'package:positivityapp/models/stats_db.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+// import 'package:positivityapp/const.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,12 +24,16 @@ void main() async {
   await dotenv.load(fileName: ".env");
   Database db = await DatabaseHandler().initializeDB();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-  // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
-  confCache.add({"cache": (await getScenario(client, deviceId))});
   SharedPreferences prefs = await SharedPreferences.getInstance();
+  UserPreference userConf = UserPreference().getPreference(prefs);
+// TBD: fix proper pre-cached scenario based on user preference
+  confCache.add({
+    "cache": (await getScenario(
+        client, deviceId, userConf.topics, userConf.difficulty))
+  });
   runApp(MyApp(
       prefs: prefs,
       client: client,
@@ -114,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void setTextControllers(int number) {
     _controllers = [];
-    for (var i = 0; i < state.state[minAnswersKey]; i++) {
+    for (var i = 0; i < userConf.minAnswers; i++) {
       _controllers.add(TextEditingController());
     }
   }
@@ -129,15 +134,9 @@ class _MyHomePageState extends State<MyHomePage> {
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
-    state.add({
-      endpointsKey: 1,
-      // endpointsKey: userConf.endpointToUse,
-      minAnswersKey: userConf.minimumPositive,
-      remindersKey: userConf.numberReminders,
-      pauseKey: userConf.pause
-    });
+    cachedScenario = state.state["cache"][0];
     noRefresh = false;
-    setTextControllers(state.state[minAnswersKey]);
+    setTextControllers(userConf.minAnswers);
   }
 
   Future<List<String>> _getText() async {
@@ -158,9 +157,8 @@ class _MyHomePageState extends State<MyHomePage> {
         return [text, "None", "None"];
       } else {
         if (noManualRefreshes == false) {
-          var res = await getScenario(client, deviceId);
-          // debugCounter += 1;
-          // var res = "Calling backend $debugCounter";
+          var res = await getScenario(
+              client, deviceId, userConf.topics, userConf.difficulty);
           cachedScenario = res[0];
           return res;
         }
@@ -242,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               labelText: 'your idea'),
                         ),
                       );
-                    }, childCount: state.state[minAnswersKey]))),
+                    }, childCount: userConf.minAnswers))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
