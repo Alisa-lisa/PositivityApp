@@ -16,7 +16,7 @@ import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
 import 'package:positivityapp/models/stats_db.dart';
-import 'package:positivityapp/const.dart';
+// import 'package:positivityapp/const.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +28,12 @@ void main() async {
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
   SharedPreferences prefs = await SharedPreferences.getInstance();
+  UserPreference userConf = UserPreference().getPreference(prefs);
 // TBD: fix proper pre-cached scenario based on user preference
-  confCache
-      .add({"cache": (await getScenario(client, deviceId, areas, difficulty))});
+  confCache.add({
+    "cache": (await getScenario(
+        client, deviceId, userConf.topics, userConf.difficulty))
+  });
   runApp(MyApp(
       prefs: prefs,
       client: client,
@@ -131,6 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
+    cachedScenario = state.state["cache"][0];
     noRefresh = false;
     setTextControllers(userConf.minAnswers);
   }
@@ -155,8 +159,6 @@ class _MyHomePageState extends State<MyHomePage> {
         if (noManualRefreshes == false) {
           var res = await getScenario(
               client, deviceId, userConf.topics, userConf.difficulty);
-          // debugCounter += 1;
-          // var res = "Calling backend $debugCounter";
           cachedScenario = res[0];
           return res;
         }
