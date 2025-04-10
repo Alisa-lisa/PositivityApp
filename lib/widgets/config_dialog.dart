@@ -36,13 +36,57 @@ class ConfigDialogState extends State<ConfigDialog> {
     return res;
   }
 
-  List<DropdownItem<String>> prepareDropdown(List<String> rawInput) {
+  List<DropdownItem<String>> prepareDropdown(
+      List<String> rawInput, List<String> refernce) {
     List<DropdownItem<String>> res = [];
     for (var item in rawInput) {
-      bool isSelected = userConf.topics.contains(item);
+      bool isSelected = refernce.contains(item);
       res.add(DropdownItem(label: item, value: item, selected: isSelected));
     }
     return res;
+  }
+
+  void _handleSelectedTopics(List<String> options) {
+    userConf.setPreference(prefs, options, []);
+  }
+
+  void _handleSelectedDifficulty(List<String> options) {
+    userConf.setPreference(prefs, [], options);
+  }
+
+  Widget _getDropdownRow(
+      String header,
+      MultiSelectController<String> controller,
+      List<DropdownItem<String>> items,
+      Function onSelect) {
+    return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Flexible(
+              flex: 20,
+              child: Padding(
+                  padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
+                  child: Text(header, textAlign: TextAlign.center))),
+          SizedBox(width: 12),
+          Flexible(
+            flex: 80,
+            child: MultiDropdown<String>(
+              items: items,
+              controller: controller,
+              enabled: true,
+              searchEnabled: true,
+              onSelectionChange: (options) {
+                onSelect(options);
+              },
+              chipDecoration: const ChipDecoration(
+                backgroundColor: Colors.yellow,
+                wrap: true,
+                runSpacing: 2,
+                spacing: 8,
+              ),
+            ),
+          )
+        ]);
   }
 
   @override
@@ -50,68 +94,66 @@ class ConfigDialogState extends State<ConfigDialog> {
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     return Dialog(
-        child: SingleChildScrollView(
-            child: SizedBox(
-                width: width * 0.9,
-                height: height * 0.6,
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      const Text("Configuration"),
-                      Row(children: <Widget>[
-                        const Expanded(
-                            child: Text("Topics", textAlign: TextAlign.center)),
-                        Expanded(
-                          child: MultiDropdown<String>(
-                            items: prepareDropdown(areas),
-                            controller: _topics,
-                            enabled: true,
-                            searchEnabled: true,
-                            onSelectionChange: (options) {
-                              userConf.setPreference(prefs, options, []);
-                            },
-                            chipDecoration: const ChipDecoration(
-                              backgroundColor: Colors.yellow,
-                              wrap: true,
-                              runSpacing: 2,
-                              spacing: 10,
-                            ),
-                            // dropdownHeight: 300,
-                            // optionTextStyle: const TextStyle(fontSize: 16),
-                            // selectedOptionIcon: const Icon(Icons.check_circle),
-                          ),
-                        )
-                      ]),
-                      Stack(children: [
-                        Positioned.fill(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: <Color>[
-                                  Color(0xFF0D47A1),
-                                  Color(0xFF1976D2),
-                                  Color(0xFF42A5F5),
-                                ],
+        child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: width * 0.9,
+              maxHeight: height * 0.6,
+            ),
+            child: SingleChildScrollView(
+                child: Container(
+                    padding: EdgeInsets.all(20),
+                    child: IntrinsicWidth(
+                        child: Column(children: [
+                      const SizedBox(height: 12),
+                      const Text(
+                        "User Configuration",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 24),
+                      _getDropdownRow(
+                          "Topics:",
+                          _topics,
+                          prepareDropdown(areas, userConf.topics),
+                          _handleSelectedTopics),
+                      const SizedBox(height: 24),
+                      _getDropdownRow(
+                          "Level:",
+                          _level,
+                          prepareDropdown(difficulty, userConf.difficulty),
+                          _handleSelectedDifficulty),
+                      const SizedBox(height: 32),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Stack(children: [
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: <Color>[
+                                    Color(0xFF0D47A1),
+                                    Color(0xFF1976D2),
+                                    Color(0xFF42A5F5),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.all(16.0),
-                            textStyle: const TextStyle(fontSize: 20),
-                          ),
-                          child: const Text("Save"),
-                          onPressed: () {
-                            setState(() {
-                              // userConf.setPreference(
-                              //     prefs, null, null, null, null);
-                            });
-                            Navigator.of(context).pop();
-                          },
-                        )
-                      ]),
-                    ]))));
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.all(16.0),
+                              textStyle: const TextStyle(fontSize: 20),
+                            ),
+                            child: const Text("Save"),
+                            onPressed: () {
+                              // Simple update force
+                              setState(() {});
+                              Navigator.of(context).pop();
+                            },
+                          )
+                        ]),
+                      )
+                    ]))))));
   }
 }

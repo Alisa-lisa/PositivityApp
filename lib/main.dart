@@ -1,13 +1,14 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:flutter/material.dart';
-import 'package:positivityapp/controllers/fetcher.dart';
-import 'package:positivityapp/models/configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:positivityapp/controllers/fetcher.dart';
+import 'package:positivityapp/controllers/dbhandler.dart';
+import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
@@ -15,7 +16,7 @@ import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/usage.dart';
 import 'package:positivityapp/models/stats_db.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:positivityapp/const.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,12 +24,13 @@ void main() async {
   await dotenv.load(fileName: ".env");
   Database db = await DatabaseHandler().initializeDB();
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-  // BaseDeviceInfo devInfo = await deviceInfo.deviceInfo; // TODO: from here define which OS it is and get Id
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
-  confCache.add({"cache": (await getScenario(client, deviceId))});
   SharedPreferences prefs = await SharedPreferences.getInstance();
+// TBD: fix proper pre-cached scenario based on user preference
+  confCache
+      .add({"cache": (await getScenario(client, deviceId, areas, difficulty))});
   runApp(MyApp(
       prefs: prefs,
       client: client,
@@ -129,13 +131,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _noFutureTrigger = false;
     usage = UsageStats().getUsage(prefs);
     userConf = UserPreference().getPreference(prefs);
-    // state.add({
-    //   endpointsKey: 1,
-    //   // endpointsKey: userConf.endpointToUse,
-    //   minAnswersKey: userConf.minimumPositive,
-    //   remindersKey: userConf.numberReminders,
-    //   pauseKey: userConf.pause
-    // });
     noRefresh = false;
     setTextControllers(userConf.minAnswers);
   }
@@ -158,7 +153,8 @@ class _MyHomePageState extends State<MyHomePage> {
         return [text, "None", "None"];
       } else {
         if (noManualRefreshes == false) {
-          var res = await getScenario(client, deviceId);
+          var res = await getScenario(
+              client, deviceId, userConf.topics, userConf.difficulty);
           // debugCounter += 1;
           // var res = "Calling backend $debugCounter";
           cachedScenario = res[0];
