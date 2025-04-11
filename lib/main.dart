@@ -11,13 +11,11 @@ import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
-import 'package:positivityapp/widgets/info_dialog.dart';
+// import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
-import 'package:positivityapp/widgets/generation_dialog.dart';
+// import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
-import 'package:positivityapp/models/usage.dart';
 import 'package:positivityapp/models/stats_db.dart';
-// import 'package:positivityapp/const.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +26,7 @@ void main() async {
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  UserPreference userConf = UserPreference().getPreference(prefs);
+  UserConfiguration userConf = await UserConfiguration.getInstance();
 // TBD: fix proper pre-cached scenario based on user preference
   String scenario = "Configure you request to call generation";
   if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
@@ -38,7 +35,7 @@ void main() async {
   }
   confCache.add({"cache": scenario});
   runApp(MyApp(
-      prefs: prefs,
+      config: userConf,
       client: client,
       deviceId: deviceId,
       state: confCache,
@@ -46,13 +43,13 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final SharedPreferences prefs;
+  final UserConfiguration config;
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
   final Database db;
   const MyApp(
-      {required this.prefs,
+      {required this.config,
       required this.client,
       required this.deviceId,
       required this.state,
@@ -70,7 +67,7 @@ class MyApp extends StatelessWidget {
       ),
       home: MyHomePage(
           title: 'PositivityApp',
-          prefs: prefs,
+          config: config,
           client: client,
           deviceId: deviceId,
           state: state,
@@ -81,7 +78,7 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   final String title;
-  final SharedPreferences prefs;
+  final UserConfiguration config;
   final http.Client client;
   final String deviceId;
   final UserConfigCache state;
@@ -89,7 +86,7 @@ class MyHomePage extends StatefulWidget {
   const MyHomePage({
     super.key,
     required this.title,
-    required this.prefs,
+    required this.config,
     required this.client,
     required this.state,
     required this.deviceId,
@@ -102,20 +99,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // const
-  SharedPreferences get prefs => widget.prefs;
+  UserConfiguration get userConf => widget.config;
   http.Client get client => widget.client;
   String get deviceId => widget.deviceId;
   UserConfigCache get state => widget.state;
   Database get db => widget.db;
-  late UserPreference userConf;
-  late UsageStats usage;
   late List<TextEditingController> _controllers;
   bool noRefresh = true;
   // work-around TextField fetching future builder triggering multipe times
   bool _noFutureTrigger = true;
   DateTime lastUpdate = DateTime.now();
-  int refreshCounter = 0;
-  String noTextAvailable = "No new scenario for now!";
+  String noYetAvailableText = "No new scenario for now!";
   late String cachedScenario;
 
   int debugCounter = 0;
@@ -135,40 +129,78 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _noFutureTrigger = false;
-    usage = UsageStats().getUsage(prefs);
-    userConf = UserPreference().getPreference(prefs);
     cachedScenario = state.state["cache"];
     noRefresh = false;
     setTextControllers(userConf.minAnswers);
   }
 
-  Future<List<String>> _getText() async {
-    if (_noFutureTrigger == false || isTimeToUpdate()) {
-      _noFutureTrigger = true;
-      lastUpdate = DateTime.now();
-      // Not sure if it's the best place, but we need to check often enough when the next day is
-      String today = getTodayAsString();
-      if (today != usage.date) {
-        await usage.setUsage(prefs, today, 2);
+  Future<List<String?>> _getText() async {
+    /**
+    Generating text using different logical checks:
+    - is it the first session -> config is not set and generation not possible, normally would be called once
+    - config update on the initial setup -> one-off trigger of config update TBD
+    - your previous text generation was Xh ago -> timestamp of the last generation is old, fetch based on config
+
+    **/
+    bool isFirstTime = userConf.topics.isEmpty;
+    // check for one-off config change
+
+    // first-time open -> userConf.topics are not set
+    if (isFirstTime) {
+      return [cachedScenario, null, null];
+    } else {
+      DateTime tryNow = DateTime.now();
+      if (userConf.lastUpdated == null) {
+        // first time generation after cofig setup
+        await userConf.updatePreferences(
+            null, null, null, tryNow.toIso8601String(), null);
+        var res = (await getScenario(
+            client, deviceId, userConf.topics, userConf.difficulty));
+        await userConf.updatePreferences(
+            null, null, null, tryNow.toIso8601String(), null);
+        return res;
       }
-      bool noManualRefreshes =
-          usage.refreshCount == 0 || refreshCounter > usage.refreshCount!;
-      // Caused either by limits hit or some dialog trigger that should not fetch a new text
-      if (noRefresh == true) {
-        String text =
-            noManualRefreshes == true ? noTextAvailable : cachedScenario;
-        return [text, "None", "None"];
+      bool isItTime =
+          tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
+              genPause;
+      // config is set and it's first generation or last generation was X hours ago
+      if (isItTime) {
+        var res = (await getScenario(
+            client, deviceId, userConf.topics, userConf.difficulty));
+        await userConf.updatePreferences(
+            null, null, null, tryNow.toIso8601String(), null);
+        return res;
       } else {
-        if (noManualRefreshes == false) {
-          var res = await getScenario(
-              client, deviceId, userConf.topics, userConf.difficulty);
-          cachedScenario = res[0];
-          return res;
-        }
-        return [noTextAvailable, "None", "None"];
+        return [noYetAvailableText, null, null];
       }
     }
-    return [cachedScenario, "None", "None"];
+
+    // if (_noFutureTrigger == false || isTimeToUpdate()) {
+    //   _noFutureTrigger = true;
+    //   lastUpdate = DateTime.now();
+    //   // Not sure if it's the best place, but we need to check often enough when the next day is
+    //   String today = getTodayAsString();
+    //   if (today != usage.date) {
+    //     await usage.setUsage(prefs, today, 2);
+    //   }
+    //   bool noManualRefreshes =
+    //       usage.refreshCount == 0 || refreshAttempts > usage.refreshCount!;
+    //   // Caused either by limits hit or some dialog trigger that should not fetch a new text
+    //   if (noRefresh == true) {
+    //     String text =
+    //         noManualRefreshes == true ? noTextAvailable : cachedScenario;
+    //     return [text, "None", "None"];
+    //   } else {
+    //     if (noManualRefreshes == false) {
+    //       var res = await getScenario(
+    //           client, deviceId, userConf.topics, userConf.difficulty);
+    //       cachedScenario = res[0];
+    //       return res;
+    //     }
+    //     return [noTextAvailable, "None", "None"];
+    //   }
+    // }
+    // return [cachedScenario, "None", "None"];
   }
 
   @override
@@ -176,9 +208,6 @@ class _MyHomePageState extends State<MyHomePage> {
     int answers = 0;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
-    int leftRefresh = usage.refreshCount! - refreshCounter >= 0
-        ? usage.refreshCount! - refreshCounter
-        : 0;
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -187,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
         body: FutureBuilder(
             future: _getText(),
             builder:
-                (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+                (BuildContext context, AsyncSnapshot<List<String?>> snapshot) {
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -279,17 +308,17 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: Icons.account_circle,
             backgroundColor: Colors.lightBlue.shade100,
             children: [
-              SpeedDialChild(
-                  child: const Icon(Icons.help),
-                  label: 'Info',
-                  backgroundColor: Colors.lightBlue.shade300,
-                  onTap: () {
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return const InfoDialog();
-                        });
-                  }),
+              // SpeedDialChild(
+              //     child: const Icon(Icons.help),
+              //     label: 'Info',
+              //     backgroundColor: Colors.lightBlue.shade300,
+              //     onTap: () {
+              //       showDialog(
+              //           context: context,
+              //           builder: (context) {
+              //             return const InfoDialog();
+              //           });
+              //     }),
               SpeedDialChild(
                   child: const Icon(Icons.fact_check),
                   label: 'Usage',
@@ -309,28 +338,28 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return ConfigDialog(prefs: prefs, state: state);
+                          return ConfigDialog(config: userConf, state: state);
                         }).then((_) {
                       noRefresh = true;
                       setState(() {});
                     });
                   }),
-              SpeedDialChild(
-                  child: const Icon(Icons.refresh),
-                  label: 'New scenario',
-                  backgroundColor: Colors.lightBlue.shade100,
-                  onTap: () {
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return GenDialog(count: leftRefresh, prefs: prefs);
-                        }).then((_) {
-                      refreshCounter += 1;
-                      noRefresh = false;
-                      _noFutureTrigger = false;
-                      setState(() {});
-                    });
-                  }),
+              // SpeedDialChild(
+              //     child: const Icon(Icons.refresh),
+              //     label: 'New scenario',
+              //     backgroundColor: Colors.lightBlue.shade100,
+              //     onTap: () {
+              //       showDialog(
+              //           context: context,
+              //           builder: (context) {
+              //             return GenDialog(count: leftRefresh, prefs: prefs);
+              //           }).then((_) {
+              //         refreshAttempts += 1;
+              //         noRefresh = false;
+              //         _noFutureTrigger = false;
+              //         setState(() {});
+              //       });
+              //     }),
             ]));
   }
 }
