@@ -1,7 +1,6 @@
 import 'package:positivityapp/const.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
@@ -17,6 +16,8 @@ import 'package:positivityapp/widgets/usage_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/stats_db.dart';
 
+const String cacheKey = "cachedScenario";
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var client = http.Client();
@@ -27,13 +28,17 @@ void main() async {
   String deviceId = androidInfo.id;
   UserConfigCache confCache = UserConfigCache();
   UserConfiguration userConf = await UserConfiguration.getInstance();
-// TBD: fix proper pre-cached scenario based on user preference
-  String scenario = "Configure you request to call generation";
+// TBD: re-designed persistent storage for pre-cached scenarios on set configuration
+  List<String?> scenario = [
+    "Set up your level and areas to start excercise",
+    null,
+    null
+  ];
   if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
     scenario = (await getScenario(
-        client, deviceId, userConf.topics, userConf.difficulty))[0];
+        client, deviceId, userConf.topics, userConf.difficulty));
   }
-  confCache.add({"cache": scenario});
+  confCache.add({cacheKey: scenario});
   runApp(MyApp(
       config: userConf,
       client: client,
@@ -105,9 +110,8 @@ class _MyHomePageState extends State<MyHomePage> {
   UserConfigCache get state => widget.state;
   Database get db => widget.db;
   late List<TextEditingController> _controllers;
-  bool noRefresh = true;
-  // work-around TextField fetching future builder triggering multipe times
-  bool _noFutureTrigger = true;
+  bool _isCollectingText =
+      false; // work-around TextField fetching future builder triggering multipe times
   DateTime lastUpdate = DateTime.now();
   String noYetAvailableText = "No new scenario for now!";
   late String cachedScenario;
@@ -121,16 +125,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  bool isTimeToUpdate() {
-    return lastUpdate.difference(DateTime.now()).inMinutes > 60;
-  }
-
   @override
   void initState() {
     super.initState();
-    _noFutureTrigger = false;
-    cachedScenario = state.state["cache"];
-    noRefresh = false;
     setTextControllers(userConf.minAnswers);
   }
 
@@ -143,37 +140,92 @@ class _MyHomePageState extends State<MyHomePage> {
 
     **/
     bool isFirstTime = userConf.topics.isEmpty;
-    // check for one-off config change
-
-    // first-time open -> userConf.topics are not set
-    if (isFirstTime) {
-      return [cachedScenario, null, null];
-    } else {
-      DateTime tryNow = DateTime.now();
-      if (userConf.lastUpdated == null) {
-        // first time generation after cofig setup
-        await userConf.updatePreferences(
-            null, null, null, tryNow.toIso8601String(), null);
-        var res = (await getScenario(
-            client, deviceId, userConf.topics, userConf.difficulty));
-        await userConf.updatePreferences(
-            null, null, null, tryNow.toIso8601String(), null);
-        return res;
-      }
-      bool isItTime =
+    DateTime tryNow = DateTime.now();
+    bool isItTime = false;
+    if (userConf.lastUpdated != null) {
+      isItTime =
           tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
               genPause;
-      // config is set and it's first generation or last generation was X hours ago
-      if (isItTime) {
-        var res = (await getScenario(
-            client, deviceId, userConf.topics, userConf.difficulty));
-        await userConf.updatePreferences(
-            null, null, null, tryNow.toIso8601String(), null);
-        return res;
-      } else {
-        return [noYetAvailableText, null, null];
-      }
+    } else {
+      await userConf.updatePreferences(
+          null, null, null, tryNow.toIso8601String(), null);
+      isItTime = true;
     }
+
+    // actual logic
+    // Is it a first timer -> is it time to answers
+    try {
+      if (isFirstTime) {
+        // no confiug set, we show inital message
+        return ["Configure preferences before starting excercise", null, null];
+      } else {
+        // config is set, now checking if the time is right and it's not a widget trigger
+        if (isItTime) {
+          var res = (await getScenario(
+              client, deviceId, userConf.topics, userConf.difficulty));
+          // state.update(cacheKey, res);
+          return res;
+        } else {
+          return ["Next session will start soon!", null, null];
+        }
+      }
+    } catch (e) {
+      FlutterError("Could not fetch a scenario due to ${e}");
+      return ["No scenario is currently available.", null, null];
+    }
+
+    try {
+      if (_isCollectingText == true) {
+        // is config set?
+        if (isFirstTime) {
+          print("First timer");
+          return state.state[cacheKey];
+        } // TBD: explicit hardcoded return value? should only happen on clean start
+        else {
+          if (isItTime) {
+            var res = (await getScenario(
+                client, deviceId, userConf.topics, userConf.difficulty));
+            state.update(cacheKey, res);
+            print("Got first time sceanrio ${res}");
+            return res;
+          } else {
+            return ["Have to wait a bit for the new task!", null, null];
+          }
+        }
+      } else {
+        print("Collecting text ${_isCollectingText}");
+        return ["No available scenarios yet!", null, null];
+      }
+    } catch (e) {
+      FlutterError("{e}");
+      return ["Something is wrong", null, null];
+    } finally {
+      setState(() {
+        _isCollectingText = false;
+      });
+    }
+
+    // first-time open -> userConf.topics are not set
+    // if (isFirstTime) {
+    //   return [cachedScenario, null, null];
+    // } else {
+    //   if (userConf.lastUpdated == null) {
+    //     // first time generation after cofig setup
+    //     var res = (await getScenario(
+    //         client, deviceId, userConf.topics, userConf.difficulty));
+    //     await userConf.updatePreferences(
+    //         null, null, null, tryNow.toIso8601String(), null);
+    //     return res;
+    //   }
+    //   // config is set and it's first generation or last generation was X hours ago
+    //   if (isItTime) {
+    //     await userConf.updatePreferences(
+    //         null, null, null, tryNow.toIso8601String(), null);
+    //     return res;
+    //   } else {
+    //     return [noYetAvailableText, null, null];
+    //   }
+    // }
 
     // if (_noFutureTrigger == false || isTimeToUpdate()) {
     //   _noFutureTrigger = true;
@@ -221,8 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
-                  if (_noFutureTrigger != true &&
-                      snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(),
                     );
@@ -295,7 +346,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 count: answers));
                         lastUpdate = DateTime.now();
                         cachedScenario = "Good job! Stay positive!";
-                        setState(() {});
+                        setState(() {
+                          _isCollectingText = true;
+                        });
                       },
                       child: const Text('Go'),
                     ),
@@ -340,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         builder: (context) {
                           return ConfigDialog(config: userConf, state: state);
                         }).then((_) {
-                      noRefresh = true;
+                      // noRefresh = true;
                       setState(() {});
                     });
                   }),
