@@ -39,6 +39,7 @@ void main() async {
         client, deviceId, userConf.topics, userConf.difficulty));
   }
   confCache.add({cacheKey: scenario});
+  confCache.add({"firstTime": true});
   runApp(MyApp(
       config: userConf,
       client: client,
@@ -112,6 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   late List<TextEditingController> _controllers;
   Future<List<String?>>? _scenarioFuture;
+  String? message;
 
   int debugCounter = 0;
 
@@ -130,6 +132,16 @@ class _MyHomePageState extends State<MyHomePage> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<List<String?>> _fetchAndPersistNow() async {
+    final now = DateTime.now();
+    final res = await getScenario(
+        client, deviceId, userConf.topics, userConf.difficulty);
+    state.update(cacheKey, res); // keep your cache in sync
+    await userConf.updatePreferences(
+        null, null, null, now.toIso8601String(), null);
+    return res;
   }
 
   Future<List<String?>> _computeScenarioAndMaybeFetch() async {
@@ -247,6 +259,8 @@ class _MyHomePageState extends State<MyHomePage> {
             future: _scenarioFuture,
             builder:
                 (BuildContext context, AsyncSnapshot<List<String?>> snapshot) {
+              final String displayMessage = message ??
+                  (snapshot.data?[0] ?? "No scenario currently available.");
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -271,7 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             color: Colors.blue[50],
                             child: Padding(
                                 padding: const EdgeInsets.fromLTRB(5, 2, 5, 0),
-                                child: Text(snapshot.data![0].toString(),
+                                child: Text(displayMessage,
                                     style: const TextStyle(fontSize: 18))),
                           )),
                           const SizedBox(height: 16.0),
@@ -322,12 +336,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                 difficulty: snapshot.data![1].toString(),
                                 area: snapshot.data![2].toString(),
                                 count: answers));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Saved. Stay positive!")),
-                          );
-                        }
+                        setState(() {
+                          message = "Saved. Stay positive!";
+                          // _scenarioFuture remains unchanged → no refetch until you trigger a time-check refresh
+                        });
+                        // if (context.mounted) {
+                        //   ScaffoldMessenger.of(context).showSnackBar(
+                        //     const SnackBar(
+                        //         content: Text("Saved. Stay positive!")),
+                        //   );
+                        // }
                       },
                       child: const Text('Go'),
                     ),
@@ -373,7 +391,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           return ConfigDialog(config: userConf, state: state);
                         }).then((_) {
                       // noRefresh = true;
-                      setState(() {});
+                      setState(() {
+                        if (state.state["firstTime"] == true) {
+                          message = null; // let new content show
+                          _scenarioFuture = _fetchAndPersistNow();
+                          state.update("firstTime", false);
+                        }
+                      });
                     });
                   }),
               // SpeedDialChild(
