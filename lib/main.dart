@@ -109,151 +109,129 @@ class _MyHomePageState extends State<MyHomePage> {
   String get deviceId => widget.deviceId;
   UserConfigCache get state => widget.state;
   Database get db => widget.db;
+
   late List<TextEditingController> _controllers;
-  bool _isCollectingText =
-      false; // work-around TextField fetching future builder triggering multipe times
-  DateTime lastUpdate = DateTime.now();
-  String noYetAvailableText = "No new scenario for now!";
-  late String cachedScenario;
+  Future<List<String?>>? _scenarioFuture;
 
   int debugCounter = 0;
-
-  void setTextControllers(int number) {
-    _controllers = [];
-    for (var i = 0; i < userConf.minAnswers; i++) {
-      _controllers.add(TextEditingController());
-    }
-  }
 
   @override
   void initState() {
     super.initState();
-    setTextControllers(userConf.minAnswers);
+    _controllers =
+        List.generate(userConf.minAnswers, (_) => TextEditingController());
+    _scenarioFuture =
+        _computeScenarioAndMaybeFetch(); // primesetTextControllers(userConf.minAnswers);
   }
 
-  Future<List<String?>> _getText() async {
-    /**
-    Generating text using different logical checks:
-    - is it the first session -> config is not set and generation not possible, normally would be called once
-    - config update on the initial setup -> one-off trigger of config update TBD
-    - your previous text generation was Xh ago -> timestamp of the last generation is old, fetch based on config
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
-    **/
-    bool isFirstTime = userConf.topics.isEmpty;
-    DateTime tryNow = DateTime.now();
-    bool isItTime = false;
-    if (userConf.lastUpdated != null) {
-      isItTime =
-          tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
-              genPause;
-    } else {
+  Future<List<String?>> _computeScenarioAndMaybeFetch() async {
+    // Step 1: configuration set?
+    final bool configSet =
+        userConf.topics.isNotEmpty && userConf.difficulty.isNotEmpty;
+
+    if (!configSet) {
+      // 1) Config not set → static message
+      return ["Configure app first", null, null];
+    }
+
+    final DateTime now = DateTime.now();
+    final String? last = userConf.lastUpdated;
+
+    // Step 2: First-time configuration → fetch once, set lastUpdated
+    if (last == null) {
+      final res = await getScenario(
+          client, deviceId, userConf.topics, userConf.difficulty);
+      // cache if you keep a cache map
+      state.update(cacheKey, res); // uses your existing cache holder
       await userConf.updatePreferences(
-          null, null, null, tryNow.toIso8601String(), null);
-      isItTime = true;
+          null, null, null, now.toIso8601String(), null);
+      return res;
     }
 
-    // actual logic
-    // Is it a first timer -> is it time to answers
-    try {
-      if (isFirstTime) {
-        // no confiug set, we show inital message
-        return ["Configure preferences before starting excercise", null, null];
-      } else {
-        // config is set, now checking if the time is right and it's not a widget trigger
-        if (isItTime) {
-          var res = (await getScenario(
-              client, deviceId, userConf.topics, userConf.difficulty));
-          // state.update(cacheKey, res);
-          return res;
-        } else {
-          return ["Next session will start soon!", null, null];
-        }
-      }
-    } catch (e) {
-      FlutterError("Could not fetch a scenario due to ${e}");
-      return ["No scenario is currently available.", null, null];
+    // Step 3: Check isItTime (>= 3h). You already have genPause == 3 (hours).
+    final bool threeHoursOrMore =
+        now.difference(DateTime.parse(last)).inHours >= genPause;
+
+    if (threeHoursOrMore) {
+      // time to fetch new
+      final res = await getScenario(
+          client, deviceId, userConf.topics, userConf.difficulty);
+      state.update(cacheKey, res);
+      await userConf.updatePreferences(
+          null, null, null, now.toIso8601String(), null);
+      return res;
+    } else {
+      // not yet time → static message
+      return ["No available scenarios yet", null, null];
     }
-
-    try {
-      if (_isCollectingText == true) {
-        // is config set?
-        if (isFirstTime) {
-          print("First timer");
-          return state.state[cacheKey];
-        } // TBD: explicit hardcoded return value? should only happen on clean start
-        else {
-          if (isItTime) {
-            var res = (await getScenario(
-                client, deviceId, userConf.topics, userConf.difficulty));
-            state.update(cacheKey, res);
-            print("Got first time sceanrio ${res}");
-            return res;
-          } else {
-            return ["Have to wait a bit for the new task!", null, null];
-          }
-        }
-      } else {
-        print("Collecting text ${_isCollectingText}");
-        return ["No available scenarios yet!", null, null];
-      }
-    } catch (e) {
-      FlutterError("{e}");
-      return ["Something is wrong", null, null];
-    } finally {
-      setState(() {
-        _isCollectingText = false;
-      });
-    }
-
-    // first-time open -> userConf.topics are not set
-    // if (isFirstTime) {
-    //   return [cachedScenario, null, null];
-    // } else {
-    //   if (userConf.lastUpdated == null) {
-    //     // first time generation after cofig setup
-    //     var res = (await getScenario(
-    //         client, deviceId, userConf.topics, userConf.difficulty));
-    //     await userConf.updatePreferences(
-    //         null, null, null, tryNow.toIso8601String(), null);
-    //     return res;
-    //   }
-    //   // config is set and it's first generation or last generation was X hours ago
-    //   if (isItTime) {
-    //     await userConf.updatePreferences(
-    //         null, null, null, tryNow.toIso8601String(), null);
-    //     return res;
-    //   } else {
-    //     return [noYetAvailableText, null, null];
-    //   }
-    // }
-
-    // if (_noFutureTrigger == false || isTimeToUpdate()) {
-    //   _noFutureTrigger = true;
-    //   lastUpdate = DateTime.now();
-    //   // Not sure if it's the best place, but we need to check often enough when the next day is
-    //   String today = getTodayAsString();
-    //   if (today != usage.date) {
-    //     await usage.setUsage(prefs, today, 2);
-    //   }
-    //   bool noManualRefreshes =
-    //       usage.refreshCount == 0 || refreshAttempts > usage.refreshCount!;
-    //   // Caused either by limits hit or some dialog trigger that should not fetch a new text
-    //   if (noRefresh == true) {
-    //     String text =
-    //         noManualRefreshes == true ? noTextAvailable : cachedScenario;
-    //     return [text, "None", "None"];
-    //   } else {
-    //     if (noManualRefreshes == false) {
-    //       var res = await getScenario(
-    //           client, deviceId, userConf.topics, userConf.difficulty);
-    //       cachedScenario = res[0];
-    //       return res;
-    //     }
-    //     return [noTextAvailable, "None", "None"];
-    //   }
-    // }
-    // return [cachedScenario, "None", "None"];
   }
+
+  // check if Last generation was >3h ago
+  // Future<bool> isItTimeYet() async {
+  //   // no fetch ever happened
+  //   DateTime tryNow = DateTime.now();
+  //   if (userConf.lastUpdated == null) {
+  //     await userConf.updatePreferences(
+  //         null, null, null, tryNow.toIso8601String(), null);
+  //     var res = (await getScenario(
+  //         client, deviceId, userConf.topics, userConf.difficulty));
+  //     state.update("cacheKey", res);
+  //     return true;
+  //   } else {
+  //     bool isInThePast =
+  //         tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
+  //             genPause;
+  //     print(
+  //         "Last update: ${userConf.lastUpdated!} vs diff ${tryNow.toIso8601String()} result: ${isInThePast}");
+  //     if (isInThePast) {
+  //       return false;
+  //     } else {
+  //       return true;
+  //     }
+  //   }
+  // }
+  //
+  // Future<List<String?>> _getText() async {
+  //   /**
+  //   Generating text using different logical checks:
+  //   - is it the first session -> config is not set and generation not possible, normally would be called once
+  //   - config update on the initial setup -> one-off trigger of config update TBD
+  //   - your previous text generation was Xh ago -> timestamp of the last generation is old, fetch based on config
+  //
+  //   **/
+  //   bool isFirstTime = userConf.topics.isEmpty;
+  //   // actual logic
+  //   // Is it a first timer -> is it time to answers
+  //   try {
+  //     if (isFirstTime) {
+  //       // no confiug set, we show inital message
+  //       return ["Configure preferences before starting excercise", null, null];
+  //     } else {
+  //       bool isItTime = await isItTimeYet();
+  //       // config is set, now chis ecking if the time is right and it's not a widget trigger
+  //       print("Is is time to fetch? ${isItTime}");
+  //       if (isItTime) {
+  //         // var res = (await getScenario(
+  //         //     client, deviceId, userConf.topics, userConf.difficulty));
+  //         // state.update(cacheKey, res);
+  //         return state.state[cacheKey];
+  //       } else {
+  //         return ["Next session will start soon!", null, null];
+  //       }
+  //     }
+  //   } catch (e) {
+  //     FlutterError("Could not fetch a scenario due to ${e}");
+  //     return ["No scenario is currently available.", null, null];
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -265,8 +243,8 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: Text(widget.title),
         ),
-        body: FutureBuilder(
-            future: _getText(),
+        body: FutureBuilder<List<String?>>(
+            future: _scenarioFuture,
             builder:
                 (BuildContext context, AsyncSnapshot<List<String?>> snapshot) {
               return CustomScrollView(slivers: [
@@ -344,11 +322,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                 difficulty: snapshot.data![1].toString(),
                                 area: snapshot.data![2].toString(),
                                 count: answers));
-                        lastUpdate = DateTime.now();
-                        cachedScenario = "Good job! Stay positive!";
-                        setState(() {
-                          _isCollectingText = true;
-                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text("Saved. Stay positive!")),
+                          );
+                        }
                       },
                       child: const Text('Go'),
                     ),
