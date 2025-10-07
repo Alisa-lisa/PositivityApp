@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:positivityapp/controllers/config_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:multi_dropdown/multi_dropdown.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/const.dart';
 
 class ConfigDialog extends StatefulWidget {
-  final SharedPreferences prefs;
+  final UserConfiguration config;
   final UserConfigCache state;
-  const ConfigDialog({super.key, required this.prefs, required this.state});
+  const ConfigDialog({super.key, required this.config, required this.state});
 
   @override
   ConfigDialogState createState() => ConfigDialogState();
@@ -16,8 +15,7 @@ class ConfigDialog extends StatefulWidget {
 
 class ConfigDialogState extends State<ConfigDialog> {
   UserConfigCache get state => widget.state;
-  SharedPreferences get prefs => widget.prefs;
-  late UserPreference userConf;
+  UserConfiguration get userConf => widget.config;
 
   final _topics = MultiSelectController<String>();
   final _level = MultiSelectController<String>();
@@ -25,7 +23,6 @@ class ConfigDialogState extends State<ConfigDialog> {
   @override
   void initState() {
     super.initState();
-    userConf = UserPreference().getPreference(prefs);
   }
 
   List<DropdownMenuItem<int>> getNumAnswers() {
@@ -46,12 +43,12 @@ class ConfigDialogState extends State<ConfigDialog> {
     return res;
   }
 
-  void _handleSelectedTopics(List<String> options) {
-    userConf.setPreference(prefs, options, []);
+  void _handleSelectedTopics(List<String> options) async {
+    await userConf.updatePreferences(options, null, null, null, null);
   }
 
-  void _handleSelectedDifficulty(List<String> options) {
-    userConf.setPreference(prefs, [], options);
+  void _handleSelectedDifficulty(List<String> options) async {
+    await userConf.updatePreferences(null, options, null, null, null);
   }
 
   Widget _getDropdownRow(
@@ -65,9 +62,9 @@ class ConfigDialogState extends State<ConfigDialog> {
           Flexible(
               flex: 20,
               child: Padding(
-                  padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
                   child: Text(header, textAlign: TextAlign.center))),
-          SizedBox(width: 5),
+          const SizedBox(width: 5),
           Flexible(
             flex: 80,
             child: MultiDropdown<String>(
@@ -101,7 +98,7 @@ class ConfigDialogState extends State<ConfigDialog> {
             ),
             child: SingleChildScrollView(
                 child: Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     child: IntrinsicWidth(
                         child: Column(children: [
                       const SizedBox(height: 12),

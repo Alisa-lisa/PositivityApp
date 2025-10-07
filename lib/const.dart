@@ -1,4 +1,5 @@
 const String stats = 'Stats';
+const int genPause = 4;
 const List<String> areas = [
   "social",
   "career",

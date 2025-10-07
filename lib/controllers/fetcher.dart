@@ -2,7 +2,6 @@ import 'package:dart_random_choice/dart_random_choice.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-const List<double> difWeight = [0.75, 0.25, 0.05];
 String? baseUrl = dotenv.env["SERVER"];
 String? auth = dotenv.env["AUTH"];
 

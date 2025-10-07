@@ -18,7 +18,7 @@ Map<int, String> migrationsSteps = {
 class DatabaseHandler {
   int version = migrationsSteps.length;
 
-  _onConfigure(Database db) async {
+  void _onConfigure(Database db) async {
     await db.execute("PRAGMA foreign_keys = ON;");
   }
 
