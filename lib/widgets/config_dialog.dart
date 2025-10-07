@@ -62,9 +62,9 @@ class ConfigDialogState extends State<ConfigDialog> {
           Flexible(
               flex: 20,
               child: Padding(
-                  padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
                   child: Text(header, textAlign: TextAlign.center))),
-          SizedBox(width: 5),
+          const SizedBox(width: 5),
           Flexible(
             flex: 80,
             child: MultiDropdown<String>(
@@ -98,7 +98,7 @@ class ConfigDialogState extends State<ConfigDialog> {
             ),
             child: SingleChildScrollView(
                 child: Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     child: IntrinsicWidth(
                         child: Column(children: [
                       const SizedBox(height: 12),
