@@ -18,8 +18,31 @@ Future<List<String>> getScenario(http.Client client, String deviceId,
   String dif = randomChoice<String>(lvl);
   String url = format(
       "{}/negative_scenario/{}?lvl={}&area={}", baseUri, deviceId, dif, area);
-  var resp = await client.get(Uri.parse(url), headers: headers);
-  Map<String, dynamic> payload = jsonDecode(resp.body);
-  print("This is payload: ${payload}");
-  return [payload["id"], payload["text"], dif, area];
+  try {
+    var resp = await client.get(Uri.parse(url), headers: headers);
+    if (resp.statusCode == 200) {
+      Map<String, dynamic> payload = jsonDecode(resp.body);
+      return [payload["id"], payload["text"], dif, area];
+    } else {
+      throw Exception("Could not fetch scenario");
+    }
+  } catch (e) {
+    throw Exception(format("Could not fetch scenario due to {}", e));
+  }
+}
+
+Future<String> saveAnswer(
+    http.Client client, String requestId, List<String> answers) async {
+  String url = format("{}/answer/{}", baseUri, requestId);
+  try {
+    var resp = await client.post(Uri.parse(url),
+        headers: headers, body: jsonEncode(answers));
+    if (resp.statusCode == 200) {
+      return resp.body;
+    } else {
+      throw Exception("Could not save answers");
+    }
+  } catch (e) {
+    throw Exception(format("Coudl not save answers due to {}", e));
+  }
 }

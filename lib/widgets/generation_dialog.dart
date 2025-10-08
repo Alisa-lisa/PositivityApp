@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class GenDialog extends StatefulWidget {
   final int count;
-  final SharedPreferences prefs;
-  const GenDialog({required this.count, required this.prefs, super.key});
+  // final SharedPreferences prefs;
+  const GenDialog({required this.count, super.key});
 
   @override
   GenDialogState createState() => GenDialogState();
@@ -12,7 +11,7 @@ class GenDialog extends StatefulWidget {
 
 class GenDialogState extends State<GenDialog> {
   int get count => widget.count;
-  SharedPreferences get prefs => widget.prefs;
+  // SharedPreferences get prefs => widget.prefs;
   // late UsageStats usage;
 
   @override
