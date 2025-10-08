@@ -1,4 +1,3 @@
-import 'package:positivityapp/const.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -10,11 +9,10 @@ import 'package:positivityapp/controllers/fetcher.dart';
 import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
-// import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
-// import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/stats_db.dart';
+import 'package:positivityapp/utils.dart';
 
 const String cacheKey = "cachedScenario";
 
@@ -23,9 +21,11 @@ void main() async {
   var client = http.Client();
   await dotenv.load(fileName: ".env");
   Database db = await DatabaseHandler().initializeDB();
+
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
   String deviceId = androidInfo.id;
+
   UserConfigCache confCache = UserConfigCache();
   UserConfiguration userConf = await UserConfiguration.getInstance();
 // TBD: re-designed persistent storage for pre-cached scenarios on set configuration
@@ -35,8 +35,13 @@ void main() async {
     null
   ];
   if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
-    scenario = (await getScenario(
-        client, deviceId, userConf.topics, userConf.difficulty));
+    if (userConf.lastUpdated != null) {
+      if (isItTimeYet(DateTime.now(), userConf.lastUpdated!)) {
+        scenario = (await getScenario(
+            client, deviceId, userConf.topics, userConf.difficulty));
+        // scenario = [raw[1], raw[2], raw[3]];
+      }
+    }
   }
   confCache.add({cacheKey: scenario});
   confCache.add({"firstTime": true});
@@ -122,8 +127,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _controllers =
         List.generate(userConf.minAnswers, (_) => TextEditingController());
-    _scenarioFuture =
-        _computeScenarioAndMaybeFetch(); // primesetTextControllers(userConf.minAnswers);
+    _scenarioFuture = _computeScenarioAndMaybeFetch();
   }
 
   @override
@@ -159,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Step 2: First-time configuration → fetch once, set lastUpdated
     if (last == null) {
-      final res = await getScenario(
+      var res = await getScenario(
           client, deviceId, userConf.topics, userConf.difficulty);
       // cache if you keep a cache map
       state.update(cacheKey, res); // uses your existing cache holder
@@ -169,9 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     // Step 3: Check isItTime (>= 3h). You already have genPause == 3 (hours).
-    final bool threeHoursOrMore =
-        now.difference(DateTime.parse(last)).inHours >= genPause;
-
+    bool threeHoursOrMore = isItTimeYet(now, last);
     if (threeHoursOrMore) {
       // time to fetch new
       final res = await getScenario(
@@ -186,68 +188,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // check if Last generation was >3h ago
-  // Future<bool> isItTimeYet() async {
-  //   // no fetch ever happened
-  //   DateTime tryNow = DateTime.now();
-  //   if (userConf.lastUpdated == null) {
-  //     await userConf.updatePreferences(
-  //         null, null, null, tryNow.toIso8601String(), null);
-  //     var res = (await getScenario(
-  //         client, deviceId, userConf.topics, userConf.difficulty));
-  //     state.update("cacheKey", res);
-  //     return true;
-  //   } else {
-  //     bool isInThePast =
-  //         tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
-  //             genPause;
-  //     print(
-  //         "Last update: ${userConf.lastUpdated!} vs diff ${tryNow.toIso8601String()} result: ${isInThePast}");
-  //     if (isInThePast) {
-  //       return false;
-  //     } else {
-  //       return true;
-  //     }
-  //   }
-  // }
-  //
-  // Future<List<String?>> _getText() async {
-  //   /**
-  //   Generating text using different logical checks:
-  //   - is it the first session -> config is not set and generation not possible, normally would be called once
-  //   - config update on the initial setup -> one-off trigger of config update TBD
-  //   - your previous text generation was Xh ago -> timestamp of the last generation is old, fetch based on config
-  //
-  //   **/
-  //   bool isFirstTime = userConf.topics.isEmpty;
-  //   // actual logic
-  //   // Is it a first timer -> is it time to answers
-  //   try {
-  //     if (isFirstTime) {
-  //       // no confiug set, we show inital message
-  //       return ["Configure preferences before starting excercise", null, null];
-  //     } else {
-  //       bool isItTime = await isItTimeYet();
-  //       // config is set, now chis ecking if the time is right and it's not a widget trigger
-  //       print("Is is time to fetch? ${isItTime}");
-  //       if (isItTime) {
-  //         // var res = (await getScenario(
-  //         //     client, deviceId, userConf.topics, userConf.difficulty));
-  //         // state.update(cacheKey, res);
-  //         return state.state[cacheKey];
-  //       } else {
-  //         return ["Next session will start soon!", null, null];
-  //       }
-  //     }
-  //   } catch (e) {
-  //     FlutterError("Could not fetch a scenario due to ${e}");
-  //     return ["No scenario is currently available.", null, null];
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     int answers = 0;
+    List<String> answersText = [];
+    bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -260,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
             builder:
                 (BuildContext context, AsyncSnapshot<List<String?>> snapshot) {
               final String displayMessage = message ??
-                  (snapshot.data?[0] ?? "No scenario currently available.");
+                  (snapshot.data?[1] ?? "No scenario currently available.");
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -324,6 +269,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () async {
                         for (var c in _controllers) {
                           if (c.text.isNotEmpty) {
+                            answersText.add(c.text);
                             answers += 1;
                           }
                           c.clear();
@@ -336,16 +282,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 difficulty: snapshot.data![1].toString(),
                                 area: snapshot.data![2].toString(),
                                 count: answers));
+                        await saveAnswer(
+                            client, snapshot.data![0]!, answersText);
                         setState(() {
                           message = "Saved. Stay positive!";
-                          // _scenarioFuture remains unchanged → no refetch until you trigger a time-check refresh
                         });
-                        // if (context.mounted) {
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     const SnackBar(
-                        //         content: Text("Saved. Stay positive!")),
-                        //   );
-                        // }
                       },
                       child: const Text('Go'),
                     ),
@@ -400,22 +341,26 @@ class _MyHomePageState extends State<MyHomePage> {
                       });
                     });
                   }),
-              // SpeedDialChild(
-              //     child: const Icon(Icons.refresh),
-              //     label: 'New scenario',
-              //     backgroundColor: Colors.lightBlue.shade100,
-              //     onTap: () {
-              //       showDialog(
-              //           context: context,
-              //           builder: (context) {
-              //             return GenDialog(count: leftRefresh, prefs: prefs);
-              //           }).then((_) {
-              //         refreshAttempts += 1;
-              //         noRefresh = false;
-              //         _noFutureTrigger = false;
-              //         setState(() {});
-              //       });
-              //     }),
+              if (debugDevice == true)
+                SpeedDialChild(
+                    child: const Icon(Icons.refresh),
+                    label: 'New scenario',
+                    backgroundColor: Colors.lightBlue.shade100,
+                    onTap: () {
+                      // showDialog(
+                      //     context: context,
+                      //     builder: (context) {
+                      //       return GenDialog(count: 1);
+                      //     }).then((_) {
+                      // refreshAttempts += 1;
+                      // noRefresh = false;
+                      // _noFutureTrigger = false;
+                      setState(() {
+                        message = null; // let new content show
+                        _scenarioFuture = _fetchAndPersistNow();
+                      });
+                      // });
+                    }),
             ]));
   }
 }
