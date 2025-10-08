@@ -12,7 +12,7 @@ import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 // import 'package:positivityapp/widgets/info_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
-// import 'package:positivityapp/widgets/generation_dialog.dart';
+import 'package:positivityapp/widgets/generation_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/stats_db.dart';
 
@@ -35,8 +35,9 @@ void main() async {
     null
   ];
   if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
-    scenario = (await getScenario(
+    var raw = (await getScenario(
         client, deviceId, userConf.topics, userConf.difficulty));
+    scenario = [raw[1], raw[2], raw[3]];
   }
   confCache.add({cacheKey: scenario});
   confCache.add({"firstTime": true});
@@ -186,65 +187,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // check if Last generation was >3h ago
-  // Future<bool> isItTimeYet() async {
-  //   // no fetch ever happened
-  //   DateTime tryNow = DateTime.now();
-  //   if (userConf.lastUpdated == null) {
-  //     await userConf.updatePreferences(
-  //         null, null, null, tryNow.toIso8601String(), null);
-  //     var res = (await getScenario(
-  //         client, deviceId, userConf.topics, userConf.difficulty));
-  //     state.update("cacheKey", res);
-  //     return true;
-  //   } else {
-  //     bool isInThePast =
-  //         tryNow.difference(DateTime.parse(userConf.lastUpdated!)).inHours >=
-  //             genPause;
-  //     print(
-  //         "Last update: ${userConf.lastUpdated!} vs diff ${tryNow.toIso8601String()} result: ${isInThePast}");
-  //     if (isInThePast) {
-  //       return false;
-  //     } else {
-  //       return true;
-  //     }
-  //   }
-  // }
-  //
-  // Future<List<String?>> _getText() async {
-  //   /**
-  //   Generating text using different logical checks:
-  //   - is it the first session -> config is not set and generation not possible, normally would be called once
-  //   - config update on the initial setup -> one-off trigger of config update TBD
-  //   - your previous text generation was Xh ago -> timestamp of the last generation is old, fetch based on config
-  //
-  //   **/
-  //   bool isFirstTime = userConf.topics.isEmpty;
-  //   // actual logic
-  //   // Is it a first timer -> is it time to answers
-  //   try {
-  //     if (isFirstTime) {
-  //       // no confiug set, we show inital message
-  //       return ["Configure preferences before starting excercise", null, null];
-  //     } else {
-  //       bool isItTime = await isItTimeYet();
-  //       // config is set, now chis ecking if the time is right and it's not a widget trigger
-  //       print("Is is time to fetch? ${isItTime}");
-  //       if (isItTime) {
-  //         // var res = (await getScenario(
-  //         //     client, deviceId, userConf.topics, userConf.difficulty));
-  //         // state.update(cacheKey, res);
-  //         return state.state[cacheKey];
-  //       } else {
-  //         return ["Next session will start soon!", null, null];
-  //       }
-  //     }
-  //   } catch (e) {
-  //     FlutterError("Could not fetch a scenario due to ${e}");
-  //     return ["No scenario is currently available.", null, null];
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     int answers = 0;
@@ -340,12 +282,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           message = "Saved. Stay positive!";
                           // _scenarioFuture remains unchanged → no refetch until you trigger a time-check refresh
                         });
-                        // if (context.mounted) {
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     const SnackBar(
-                        //         content: Text("Saved. Stay positive!")),
-                        //   );
-                        // }
                       },
                       child: const Text('Go'),
                     ),
@@ -400,22 +336,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       });
                     });
                   }),
-              // SpeedDialChild(
-              //     child: const Icon(Icons.refresh),
-              //     label: 'New scenario',
-              //     backgroundColor: Colors.lightBlue.shade100,
-              //     onTap: () {
-              //       showDialog(
-              //           context: context,
-              //           builder: (context) {
-              //             return GenDialog(count: leftRefresh, prefs: prefs);
-              //           }).then((_) {
-              //         refreshAttempts += 1;
-              //         noRefresh = false;
-              //         _noFutureTrigger = false;
-              //         setState(() {});
-              //       });
-              //     }),
+              SpeedDialChild(
+                  child: const Icon(Icons.refresh),
+                  label: 'New scenario',
+                  backgroundColor: Colors.lightBlue.shade100,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return GenDialog(count: 0, prefs: prefs);
+                        }).then((_) {
+                      // refreshAttempts += 1;
+                      // noRefresh = false;
+                      // _noFutureTrigger = false;
+                      setState(() {});
+                    });
+                  }),
             ]));
   }
 }

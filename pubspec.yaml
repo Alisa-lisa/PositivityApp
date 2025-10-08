@@ -47,6 +47,7 @@ dependencies:
   build_runner:
   path:
   flutter_dotenv:
+  format:
 
 dev_dependencies:
   flutter_test:

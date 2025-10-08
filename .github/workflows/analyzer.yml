@@ -14,12 +14,12 @@ jobs:
         with:
           flutter-version-file: pubspec.yaml
           channel: 'stable'
-      - name: prepare secrets
-        run: |
-          touch .env
-          echo "AUTH=auth" >> .env
-          echo "SERVER=localhost" >> .env
-          dart pub run build_runner clean
-          dart pub run build_runner build --delete-conflicting-outputs
+      # - name: prepare secrets
+      #   run: |
+      #     touch .env
+      #     echo "AUTH=auth" >> .env
+      #     echo "SERVER=localhost" >> .env
+      #     dart pub run build_runner clean
+      #     dart pub run build_runner build --delete-conflicting-outputs
       - name: Analyze code
         run: flutter analyze
