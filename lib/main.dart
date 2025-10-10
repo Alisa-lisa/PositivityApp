@@ -119,6 +119,8 @@ class _MyHomePageState extends State<MyHomePage> {
   late List<TextEditingController> _controllers;
   Future<List<String?>>? _scenarioFuture;
   String? message;
+  bool trackFeedback = false;
+  bool? feedback;
 
   int debugCounter = 0;
 
@@ -145,6 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
     state.update(cacheKey, res); // keep your cache in sync
     await userConf.updatePreferences(
         null, null, null, now.toIso8601String(), null);
+    trackFeedback = true;
     return res;
   }
 
@@ -169,6 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
       state.update(cacheKey, res); // uses your existing cache holder
       await userConf.updatePreferences(
           null, null, null, now.toIso8601String(), null);
+      trackFeedback = true;
       return res;
     }
 
@@ -184,6 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return res;
     } else {
       // not yet time → static message
+      trackFeedback = false;
       return ["No available scenarios yet", null, null];
     }
   }
@@ -225,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       fontWeight: FontWeight.bold))),
                           Center(
                               child: Container(
-                            height: height * 0.3,
+                            height: height * 0.15,
                             width: width * 0.96,
                             color: Colors.blue[50],
                             child: Padding(
@@ -233,10 +238,48 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Text(displayMessage,
                                     style: const TextStyle(fontSize: 18))),
                           )),
-                          const SizedBox(height: 16.0),
+                          const SizedBox(height: 10.0),
                         ]);
                   }
                 }, childCount: 1)),
+                if (trackFeedback == true)
+                  SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+                      sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int index) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.thumb_down_alt_outlined,
+                                color: feedback == false
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  feedback = false;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.thumb_up_alt_outlined,
+                                color: feedback == true
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  feedback = true;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }, childCount: 1))),
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
@@ -283,9 +326,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 area: snapshot.data![2].toString(),
                                 count: answers));
                         await saveAnswer(
-                            client, snapshot.data![0]!, answersText);
+                            client, snapshot.data![0]!, answersText, feedback);
                         setState(() {
                           message = "Saved. Stay positive!";
+                          trackFeedback = false;
+                          feedback = null;
                         });
                       },
                       child: const Text('Go'),
