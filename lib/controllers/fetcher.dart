@@ -31,9 +31,12 @@ Future<List<String>> getScenario(http.Client client, String deviceId,
   }
 }
 
-Future<String> saveAnswer(
-    http.Client client, String requestId, List<String> answers) async {
+Future<String> saveAnswer(http.Client client, String requestId,
+    List<String> answers, bool? satisfaction) async {
   String url = format("{}/answer/{}", baseUri, requestId);
+  if (satisfaction != null) {
+    url = format("{}?satisfaction={}", url, satisfaction.toString());
+  }
   try {
     var resp = await client.post(Uri.parse(url),
         headers: headers, body: jsonEncode(answers));
