@@ -10,7 +10,7 @@ import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
-// import 'package:positivityapp/widgets/progress_dialog.dart';
+import 'package:positivityapp/widgets/progress_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/stats_db.dart';
 import 'package:positivityapp/utils.dart';
@@ -207,7 +207,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     bool timeToTrack =
-        isItTimeYet(DateTime.now(), state.state["lastProgress"], 24 * 7);
+        isItTimeYet(DateTime.now(), state.state["lastTrack"], 24 * 7);
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -335,16 +335,26 @@ class _MyHomePageState extends State<MyHomePage> {
                                 count: answers));
                         await saveAnswer(
                             client, snapshot.data![0]!, answersText, feedback);
-                        setState(() {
-                          message = "Saved. Stay positive!";
-                          state.update("textQailuty", false);
-                          feedback = null;
-                        });
-                        // if (timeToTrack) {
-                        //   showDialog(context: context, builder: (context) {
-                        //     return WellbeingDialog(client: client, deviceId: deviceId);
-                        //   });
-                        // }
+                        if (timeToTrack) {
+                          showDialog(
+                              context: context,
+                              builder: (context) {
+                                return WellbeingDialog(
+                                    client: client, deviceId: deviceId);
+                              }).then((_) {
+                            setState(() {
+                              message = "Saved. Stay positive!";
+                              state.update("textQailuty", false);
+                              feedback = null;
+                            });
+                          });
+                        } else {
+                          setState(() {
+                            message = "Saved. Stay positive!";
+                            state.update("textQailuty", false);
+                            feedback = null;
+                          });
+                        }
                       },
                       child: const Text('Go'),
                     ),
