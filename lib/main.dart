@@ -335,6 +335,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 count: answers));
                         await saveAnswer(
                             client, snapshot.data![0]!, answersText, feedback);
+                        if (!context.mounted) return;
                         if (timeToTrack) {
                           showDialog(
                               context: context,

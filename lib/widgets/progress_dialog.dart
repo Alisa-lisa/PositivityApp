@@ -119,6 +119,7 @@ class WellbeingDialogState extends State<WellbeingDialog> {
         ),
         ElevatedButton(
           onPressed: () async {
+            final nav = Navigator.of(context);
             await saveProgress(
                 client,
                 deviceId,
@@ -131,7 +132,7 @@ class WellbeingDialogState extends State<WellbeingDialog> {
                 _negativeEvents,
                 _positiveEvents,
                 _feedbackCtrl.text);
-            Navigator.of(context).pop();
+            nav.pop();
           },
           child: const Text('Save'),
         ),
