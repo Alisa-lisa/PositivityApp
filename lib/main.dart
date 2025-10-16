@@ -10,9 +10,11 @@ import 'package:positivityapp/controllers/dbhandler.dart';
 import 'package:positivityapp/models/configuration.dart';
 import 'package:positivityapp/widgets/config_dialog.dart';
 import 'package:positivityapp/widgets/usage_dialog.dart';
+// import 'package:positivityapp/widgets/progress_dialog.dart';
 import 'package:positivityapp/controllers/config_state.dart';
 import 'package:positivityapp/models/stats_db.dart';
 import 'package:positivityapp/utils.dart';
+import 'package:positivityapp/const.dart';
 
 const String cacheKey = "cachedScenario";
 
@@ -36,15 +38,19 @@ void main() async {
   ];
   if (userConf.topics.isNotEmpty & userConf.difficulty.isNotEmpty) {
     if (userConf.lastUpdated != null) {
-      if (isItTimeYet(DateTime.now(), userConf.lastUpdated!)) {
+      if (isItTimeYet(DateTime.now(), userConf.lastUpdated!, genPause)) {
         scenario = (await getScenario(
             client, deviceId, userConf.topics, userConf.difficulty));
-        // scenario = [raw[1], raw[2], raw[3]];
+        confCache.add({"textQailuty": true});
       }
     }
   }
   confCache.add({cacheKey: scenario});
-  confCache.add({"firstTime": true});
+  if (userConf.topics.isEmpty) {
+    confCache.add({"firstTime": true});
+  }
+  confCache.add({"lastTrack": await lastProgress(client, deviceId)});
+
   runApp(MyApp(
       config: userConf,
       client: client,
@@ -119,8 +125,8 @@ class _MyHomePageState extends State<MyHomePage> {
   late List<TextEditingController> _controllers;
   Future<List<String?>>? _scenarioFuture;
   String? message;
-  bool trackFeedback = false;
   bool? feedback;
+  bool timeToTck = false;
 
   int debugCounter = 0;
 
@@ -147,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
     state.update(cacheKey, res); // keep your cache in sync
     await userConf.updatePreferences(
         null, null, null, now.toIso8601String(), null);
-    trackFeedback = true;
+    state.update("textQailuty", true);
     return res;
   }
 
@@ -172,12 +178,12 @@ class _MyHomePageState extends State<MyHomePage> {
       state.update(cacheKey, res); // uses your existing cache holder
       await userConf.updatePreferences(
           null, null, null, now.toIso8601String(), null);
-      trackFeedback = true;
+      state.update("textQailuty", true);
       return res;
     }
 
     // Step 3: Check isItTime (>= 3h). You already have genPause == 3 (hours).
-    bool threeHoursOrMore = isItTimeYet(now, last);
+    bool threeHoursOrMore = isItTimeYet(now, last, genPause);
     if (threeHoursOrMore) {
       // time to fetch new
       final res = await getScenario(
@@ -188,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return res;
     } else {
       // not yet time → static message
-      trackFeedback = false;
+      state.update("textQailuty", false);
       return ["No available scenarios yet", null, null];
     }
   }
@@ -200,6 +206,8 @@ class _MyHomePageState extends State<MyHomePage> {
     bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
+    bool timeToTrack =
+        isItTimeYet(DateTime.now(), state.state["lastProgress"], 24 * 7);
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -242,7 +250,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ]);
                   }
                 }, childCount: 1)),
-                if (trackFeedback == true)
+                if (state.state["textQailuty"] == true)
                   SliverPadding(
                       padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
                       sliver: SliverList(
@@ -329,9 +337,14 @@ class _MyHomePageState extends State<MyHomePage> {
                             client, snapshot.data![0]!, answersText, feedback);
                         setState(() {
                           message = "Saved. Stay positive!";
-                          trackFeedback = false;
+                          state.update("textQailuty", false);
                           feedback = null;
                         });
+                        // if (timeToTrack) {
+                        //   showDialog(context: context, builder: (context) {
+                        //     return WellbeingDialog(client: client, deviceId: deviceId);
+                        //   });
+                        // }
                       },
                       child: const Text('Go'),
                     ),
