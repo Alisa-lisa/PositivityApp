@@ -1,6 +1,8 @@
 import 'package:format/format.dart';
 
 bool isItTimeYet(DateTime now, String? last, int difference) {
+  return true;
+  // TODO: bug
   if (last != null) {
     try {
       // last = last.split(".")[0];
