@@ -23,7 +23,8 @@ Future<List<String>> getScenario(http.Client client, String deviceId,
     var resp = await client.get(Uri.parse(url), headers: headers);
     if (resp.statusCode == 200) {
       Map<String, dynamic> payload = jsonDecode(resp.body);
-      return [payload["id"], payload["text"], dif, area];
+      // return [payload["id"], payload["text"], dif, area];
+      return [payload["text"], dif, area, payload["id"]];
     } else {
       throw Exception("Could not fetch scenario");
     }
@@ -48,7 +49,7 @@ Future<String> saveAnswer(http.Client client, String requestId,
       throw Exception("Could not save answers");
     }
   } catch (e) {
-    throw Exception(format("Coudl not save answers due to {}", e));
+    throw Exception(format("Could not save answers due to {}", e));
   }
 }
 
