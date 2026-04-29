@@ -203,7 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     int answers = 0;
     List<String> answersText = [];
-    bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
+    // bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     bool timeToTrack =
