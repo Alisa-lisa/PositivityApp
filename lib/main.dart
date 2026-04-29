@@ -41,7 +41,7 @@ void main() async {
       if (isItTimeYet(DateTime.now(), userConf.lastUpdated!, genPause)) {
         scenario = (await getScenario(
             client, deviceId, userConf.topics, userConf.difficulty));
-        confCache.add({"textQailuty": true});
+        confCache.add({"textQuality": true});
       }
     }
   }
@@ -153,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
     state.update(cacheKey, res); // keep your cache in sync
     await userConf.updatePreferences(
         null, null, null, now.toIso8601String(), null);
-    state.update("textQailuty", true);
+    state.update("textQuality", true);
     return res;
   }
 
@@ -178,7 +178,7 @@ class _MyHomePageState extends State<MyHomePage> {
       state.update(cacheKey, res); // uses your existing cache holder
       await userConf.updatePreferences(
           null, null, null, now.toIso8601String(), null);
-      state.update("textQailuty", true);
+      state.update("textQuality", true);
       return res;
     }
 
@@ -194,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return res;
     } else {
       // not yet time → static message
-      state.update("textQailuty", false);
+      state.update("textQuality", false);
       return ["No available scenarios yet", null, null];
     }
   }
@@ -203,7 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     int answers = 0;
     List<String> answersText = [];
-    bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
+    // bool debugDevice = dotenv.env["DEBUG_DEVICE"] != null ? true : false;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     bool timeToTrack =
@@ -217,8 +217,8 @@ class _MyHomePageState extends State<MyHomePage> {
             future: _scenarioFuture,
             builder:
                 (BuildContext context, AsyncSnapshot<List<String?>> snapshot) {
-              final String displayMessage = message ??
-                  (snapshot.data?[1] ?? "No scenario currently available.");
+              String displayMessage = message ??
+                  (snapshot.data?[0] ?? "No scenario currently available.");
               return CustomScrollView(slivers: [
                 SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -250,7 +250,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ]);
                   }
                 }, childCount: 1)),
-                if (state.state["textQailuty"] == true)
+                if (state.state["textQuality"] == true)
                   SliverPadding(
                       padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
                       sliver: SliverList(
@@ -318,13 +318,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Center(
                     child: ElevatedButton(
                       onPressed: () async {
-                        for (var c in _controllers) {
-                          if (c.text.isNotEmpty) {
-                            answersText.add(c.text);
-                            answers += 1;
-                          }
-                          c.clear();
-                        }
                         await Stats.write(
                             db,
                             Stats(
@@ -334,7 +327,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                 area: snapshot.data![2].toString(),
                                 count: answers));
                         await saveAnswer(
-                            client, snapshot.data![0]!, answersText, feedback);
+                            client, snapshot.data![3]!, answersText, feedback);
+                        for (var c in _controllers) {
+                          if (c.text.isNotEmpty) {
+                            answersText.add(c.text);
+                            answers += 1;
+                          }
+                          c.clear();
+                        }
                         if (!context.mounted) return;
                         if (timeToTrack) {
                           showDialog(
@@ -342,20 +342,27 @@ class _MyHomePageState extends State<MyHomePage> {
                               builder: (context) {
                                 return WellbeingDialog(
                                     client: client, deviceId: deviceId);
-                              }).then((_) {
-                            setState(() {
-                              message = "Saved. Stay positive!";
-                              state.update("textQailuty", false);
-                              feedback = null;
-                            });
-                          });
-                        } else {
-                          setState(() {
-                            message = "Saved. Stay positive!";
-                            state.update("textQailuty", false);
-                            feedback = null;
-                          });
+                              });
+                          // .then((_) {
+                          //   setState(() {
+                          //     // message = "Saved. Stay positive!";
+                          //     // state.update("textQuality", false);
+                          //     // feedback = null;
+                          //   });
+                          // });
                         }
+                        // else {
+                        //   setState(() {
+                        //     // message = "Saved. Stay positive!";
+                        //     state.update("textQuality", false);
+                        //     feedback = null;
+                        //   });
+                        // }
+                        setState(() {
+                          message = "Saved! Stay positive!:)";
+                          state.update("textQuality", false);
+                          feedback = null;
+                        });
                       },
                       child: const Text('Go'),
                     ),
@@ -410,26 +417,26 @@ class _MyHomePageState extends State<MyHomePage> {
                       });
                     });
                   }),
-              if (debugDevice == true)
-                SpeedDialChild(
-                    child: const Icon(Icons.refresh),
-                    label: 'New scenario',
-                    backgroundColor: Colors.lightBlue.shade100,
-                    onTap: () {
-                      // showDialog(
-                      //     context: context,
-                      //     builder: (context) {
-                      //       return GenDialog(count: 1);
-                      //     }).then((_) {
-                      // refreshAttempts += 1;
-                      // noRefresh = false;
-                      // _noFutureTrigger = false;
-                      setState(() {
-                        message = null; // let new content show
-                        _scenarioFuture = _fetchAndPersistNow();
-                      });
-                      // });
-                    }),
+              // if (debugDevice == true)
+              SpeedDialChild(
+                  child: const Icon(Icons.refresh),
+                  label: 'New scenario',
+                  backgroundColor: Colors.lightBlue.shade100,
+                  onTap: () {
+                    // showDialog(
+                    //     context: context,
+                    //     builder: (context) {
+                    //       return GenDialog(count: 1);
+                    //     }).then((_) {
+                    // refreshAttempts += 1;
+                    // noRefresh = false;
+                    // _noFutureTrigger = false;
+                    setState(() {
+                      message = null; // let new content show
+                      _scenarioFuture = _fetchAndPersistNow();
+                    });
+                    // });
+                  }),
             ]));
   }
 }
