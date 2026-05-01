@@ -103,3 +103,44 @@ Future<bool> saveProgress(
     throw Exception(format("Could not save progress due to {}", e));
   }
 }
+
+Future<void> login(http.Client client, String deviceId, String ageGroup,
+    String gender, int availbaility, bool therapy, String expectations) async {
+  String url = format("{}/user/{}", trackBase, deviceId);
+  try {
+    Map<String, dynamic> body = {
+      "age_group": ageGroup,
+      "gender": gender,
+      "available_time": availbaility,
+      "therapy": therapy,
+      "expectations": expectations,
+    };
+    var resp = await client.post(Uri.parse(url),
+        headers: headers, body: jsonEncode(body));
+    if (resp.statusCode == 200) {
+      return jsonDecode(resp.body);
+    } else {
+      throw Exception("Could not create user");
+    }
+  } catch (e) {
+    throw Exception(format("Could not login user due to {}", e));
+  }
+}
+
+Future<bool> checkLogin(http.Client client, String deviceId) async {
+  String url = format("{}/user/{}", trackBase, deviceId);
+  try {
+    var resp = await client.get(Uri.parse(url), headers: headers);
+    if (resp.statusCode == 200) {
+      return true;
+    }
+    if (resp.statusCode == 404) {
+      return false;
+    } else {
+      throw Exception("No user login");
+    }
+  } catch (e) {
+    throw Exception(
+        format("Could not fetch user under this device due to {}", e));
+  }
+}
